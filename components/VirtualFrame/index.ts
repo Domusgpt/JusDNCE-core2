@@ -70,6 +70,13 @@ export {
   type VirtualFrameControlsProps,
 } from './VirtualFrameRenderer';
 
+// React Hook (for incremental integration)
+export {
+  useVirtualFrame,
+  type UseVirtualFrameOptions,
+  type UseVirtualFrameReturn,
+} from './useVirtualFrame';
+
 // Re-export config from constants
 export {
   VIRTUAL_FRAME_CONFIG,
