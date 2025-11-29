@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jusDNCE AI - Redirecting...</title>
+    <script>
+      // Single Page App redirect for GitHub Pages
+      // Stores the path in sessionStorage and redirects to index.html
+      // which will then restore the intended route
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+
+      // Store the full path for the SPA to pick up
+      sessionStorage.setItem('spa-redirect', path + search + hash);
+
+      // Redirect to the base path (will be replaced during build)
+      window.location.replace('/JusDNCE-core2/');
+    </script>
+    <style>
+      body {
+        background-color: #050505;
+        color: #e4e4e7;
+        font-family: 'Rajdhani', sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .loading {
+        text-align: center;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(139, 92, 246, 0.3);
+        border-top-color: #8b5cf6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Redirecting...</p>
+    </div>
+  </body>
+</html>

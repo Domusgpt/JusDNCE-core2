@@ -179,3 +179,136 @@ export const STYLE_PRESETS: StylePreset[] = [
     hologramParams: { geometryType: 5, hue: 210, chaos: 0.0, density: 0.4, speed: 0.2, intensity: 0.4 }
   }
 ];
+
+// ============================================================================
+// VIRTUAL FRAME SYSTEM CONFIGURATION
+// ============================================================================
+// Tunable parameters for the Virtual Frame Animation System.
+// See VIRTUAL_FRAME_SYSTEM.md for full documentation.
+
+export const VIRTUAL_FRAME_CONFIG = {
+  // === PHASE SYNTHESIS ===
+  // Generates smooth rotation between discrete sprite frames
+  phaseSynthesis: {
+    featherPx: 10,           // Seam feather width (8-12 at 584w)
+    warpMultiplier: 1.0,     // Cylindrical warp intensity
+    motionShear: 0.08,       // Velocity distortion (0.06-0.12)
+    maxWarpDeg: 6,           // Maximum warp degrees for stability
+  },
+
+  // === PARALLAX ===
+  // Fake 3D depth using SDF layers
+  parallax: {
+    enabled: true,
+    layers: [
+      { name: 'core', threshold: 24, factor: 0.0 },
+      { name: 'mid',  threshold: 12, factor: 0.4 },
+      { name: 'rim',  threshold: 4,  factor: 0.8 },
+    ] as const,
+    pxPerDegree: 0.8,        // Parallax offset per degree at 584w
+    intensity: 1.0,          // Global parallax multiplier
+  },
+
+  // === ZOOM ===
+  // Crop and sharpen for zoom/pan effects
+  zoom: {
+    maxZoom: 3.0,
+    sharpenThreshold: 1.25,  // Apply sharpening above this zoom
+    unsharpAmount: 0.5,      // Unsharp mask intensity
+    unsharpRadius: 1.5,      // Unsharp mask radius in px
+  },
+
+  // === MOTION BLUR ===
+  // Perceptual motion blur via multi-sampling
+  motionBlur: {
+    enabled: true,
+    epsilon: 0.12,           // Temporal offset for blur sample
+    mixFactor: 0.3,          // Blend ratio (0 = none, 0.5 = heavy)
+    gamma: 2.2,              // Gamma for perceptually correct blend
+  },
+
+  // === SHADOW ===
+  // Ground plane shadow projection
+  shadow: {
+    enabled: true,
+    opacity: 0.4,            // Shadow darkness
+    blurRadius: 8,           // Blur in pixels
+    yawShiftPx: 2,           // Lateral shift with rotation
+    verticalCompression: 0.4, // Shadow squash factor
+    skewFactor: 0.2,         // Perspective skew amount
+  },
+
+  // === SWEETENERS ===
+  // Visual polish effects
+  sweeteners: {
+    grain: {
+      enabled: true,
+      intensity: 0.03,       // Grain strength (0-0.1)
+      fixedSeed: true,       // Per frame, not per pixel
+    },
+    vignette: {
+      enabled: true,
+      intensity: 0.2,        // Edge darkening (0-1)
+    },
+    specularKick: {
+      enabled: false,
+      intensity: 0.1,
+      lightDir: [0.5, 0.5] as [number, number],
+    },
+  },
+
+  // === MICRO-DITHER ===
+  // Sub-pixel noise to hide seams and banding
+  microDither: {
+    enabled: true,
+    amount: 0.002,           // ±0.5px at 584w
+    blueNoiseSize: 64,       // Blue noise texture size
+  },
+
+  // === MULTI-SHEET INTERLEAVE ===
+  // Settings for 24/36 frame animations using multiple sheets
+  multiSheet: {
+    warpReductionFactor: 0.5, // Weaker warp when frames are closer
+  },
+
+  // === ANIMATION MODE PRESETS ===
+  // Pre-configured settings for different use cases
+  presets: {
+    'audio-dance': {
+      phaseSynthesis: { featherPx: 10, motionShear: 0.1, warpMultiplier: 1.0, maxWarpDeg: 6 },
+      parallax: { enabled: true, intensity: 1.0 },
+      motionBlur: { enabled: true, mixFactor: 0.3 },
+      shadow: { enabled: true, opacity: 0.4 },
+      sweeteners: { grain: { enabled: true, intensity: 0.03 }, vignette: { enabled: true, intensity: 0.2 } },
+    },
+    'character-spin': {
+      phaseSynthesis: { featherPx: 12, motionShear: 0.06, warpMultiplier: 1.2, maxWarpDeg: 8 },
+      parallax: { enabled: true, intensity: 1.2 },
+      motionBlur: { enabled: false, mixFactor: 0 },
+      shadow: { enabled: true, opacity: 0.5 },
+      sweeteners: { grain: { enabled: false, intensity: 0 }, vignette: { enabled: true, intensity: 0.15 } },
+    },
+    'text-logo': {
+      phaseSynthesis: { featherPx: 8, motionShear: 0.04, warpMultiplier: 0.8, maxWarpDeg: 4 },
+      parallax: { enabled: false, intensity: 0 },
+      motionBlur: { enabled: false, mixFactor: 0 },
+      shadow: { enabled: false, opacity: 0 },
+      sweeteners: { grain: { enabled: false, intensity: 0 }, vignette: { enabled: false, intensity: 0 } },
+    },
+    'product-360': {
+      phaseSynthesis: { featherPx: 10, motionShear: 0.05, warpMultiplier: 1.0, maxWarpDeg: 6 },
+      parallax: { enabled: true, intensity: 0.5 },
+      motionBlur: { enabled: true, mixFactor: 0.2 },
+      shadow: { enabled: true, opacity: 0.6 },
+      sweeteners: { grain: { enabled: false, intensity: 0 }, vignette: { enabled: true, intensity: 0.1 } },
+    },
+  } as const,
+} as const;
+
+export type VirtualFrameConfig = typeof VIRTUAL_FRAME_CONFIG;
+export type VirtualFramePreset = keyof typeof VIRTUAL_FRAME_CONFIG.presets;
+
+// Helper to get a preset configuration
+export function getVirtualFramePreset(preset: VirtualFramePreset): Partial<typeof VIRTUAL_FRAME_CONFIG> {
+  return VIRTUAL_FRAME_CONFIG.presets[preset] as Partial<typeof VIRTUAL_FRAME_CONFIG>;
+}
