@@ -132,6 +132,53 @@ Lines 689-692 - `if (exportOption.position === 'full')` now uses `duration = aud
 
 ---
 
+#### Change #5: Glassmorphic Onboarding System
+**Files:** `components/Onboarding.tsx` (NEW), `App.tsx`
+**Time:** 2025-11-29 (Continued Session)
+**Status:** COMPLETED ✅
+
+**Problem:**
+New users need guidance. Idle-triggered tooltips to explain the app flow.
+
+**Solution:**
+Created complete onboarding system with:
+
+1. **OnboardingTooltip Component** - Contextual hints with:
+   - Arrow positioning (top/bottom/left/right)
+   - Accent colors (brand/cyan/magenta/yellow)
+   - Glassmorphic neon styling
+   - Got It + Skip All buttons
+
+2. **FirstPageExplainer Component** - Welcome screen with:
+   - 3-step visual guide (Upload → Add Music → Dance!)
+   - Pro tip about microphone input
+   - Glassmorphic neon styling
+
+3. **useOnboarding Hook** - Idle detection:
+   - 4s delay for first page explainer
+   - 10s delay for input tooltips
+   - localStorage persistence for dismissed steps
+   - Reset functionality for testing
+
+4. **App.tsx Integration**:
+   - Imported Onboarding component
+   - Added `<Onboarding currentStep={appState.step + 1} />` above main content
+
+**Files Created:**
+- `components/Onboarding.tsx` (378 lines)
+
+**Files Modified:**
+- `App.tsx` lines 20, 486-487: Import and render
+
+**Testing Required:**
+- Load app fresh (clear localStorage)
+- Wait 4s on first page → should see FirstPageExplainer
+- Wait 10s without action → should see contextual tooltips
+- Click "Got it" or "Skip All" → should dismiss appropriately
+- Reload → should remember dismissed state
+
+---
+
 ## Backup Information
 - Original branch: `main`
 - Backup created before changes: Yes
