@@ -1,7 +1,61 @@
 
 import { StylePreset } from "./types";
 
-export const CREDIT_COST_PER_SONG = 1;
+// Credit costs per generation mode
+export const CREDIT_COSTS = {
+  TURBO: 1,           // 4 frames - fast generation
+  QUALITY: 2,         // 8 frames - better quality
+  SUPER_MODE: 4,      // 15 frames - premium choreography
+  RE_EXPORT: 1,       // Re-export with new song/params (Turbo/Quality only)
+  WIDGET_PURCHASE: 20, // Standalone widget export (watermarked unless subscriber)
+} as const;
+
+// Export duration options with credit costs
+// - 15s (middle of song), 30s (first 30s), 59s (last minute) = 1 credit
+// - Full song = 2 credits
+// - Double cost for no watermark toggle
+export const EXPORT_OPTIONS = {
+  '15s-mid': { label: '15s (Middle)', durationSec: 15, position: 'middle', credits: 1 },
+  '30s-start': { label: '30s (Start)', durationSec: 30, position: 'start', credits: 1 },
+  '59s-end': { label: '59s (End)', durationSec: 59, position: 'end', credits: 1 },
+  'full': { label: 'Full Song', durationSec: null, position: 'full', credits: 2 },
+} as const;
+
+export type ExportDurationType = keyof typeof EXPORT_OPTIONS;
+
+// Credit pack pricing - user request: $1/1cr, $5/10cr, $10/25cr, $20/60cr, $30/100cr
+export const CREDIT_PACKS = [
+  { id: 'pack_1', credits: 1, price: 1, label: '1 Credit', priceId: 'price_1cr' },
+  { id: 'pack_10', credits: 10, price: 5, label: '10 Credits', priceId: 'price_10cr', popular: true },
+  { id: 'pack_25', credits: 25, price: 10, label: '25 Credits', priceId: 'price_25cr' },
+  { id: 'pack_60', credits: 60, price: 20, label: '60 Credits', priceId: 'price_60cr', bestValue: true },
+  { id: 'pack_100', credits: 100, price: 30, label: '100 Credits', priceId: 'price_100cr' },
+] as const;
+
+// Subscription tier - $8/month for no ads + 2 daily credits + watermark removal
+export const SUBSCRIPTION = {
+  id: 'sub_pro',
+  price: 8,
+  dailyCredits: 2,
+  label: 'Pro Subscription',
+  priceId: 'price_sub_pro',
+  features: [
+    'No Watermarks on Exports',
+    'Unlimited Re-Exports (Super Mode)',
+    '2 Free Credits Daily',
+    'Priority Generation',
+    'No Ads',
+  ],
+} as const;
+
+// Free tier benefits
+export const FREE_TIER = {
+  signupCredits: 5,     // Credits given on signup
+  dailyCredits: 1,      // Free credit per day for all users
+} as const;
+
+// Legacy exports for backward compatibility
+export const CREDIT_COST_PER_SONG = CREDIT_COSTS.TURBO;
 export const CREDITS_PACK_PRICE = 5;
 export const CREDITS_PER_PACK = 10;
 

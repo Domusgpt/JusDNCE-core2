@@ -1,10 +1,11 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Video, Settings, Mic, MicOff, Maximize2, Minimize2, Upload, X, Loader2, Sliders, Package, Music, ChevronDown, ChevronUp, Activity, Download, FileVideo, Radio, Star, BarChart2 } from 'lucide-react';
+import { Play, Pause, Video, Settings, Mic, MicOff, Maximize2, Minimize2, Upload, X, Loader2, Sliders, Package, Music, ChevronDown, ChevronUp, Activity, Download, FileVideo, Radio, Star, BarChart2, ArrowLeft, RefreshCw, Home, Share2, LogIn } from 'lucide-react';
 import { AppState, EnergyLevel, StutterMode } from '../types';
 import { QuantumVisualizer } from './Visualizer/HolographicVisualizer';
 import { generatePlayerHTML } from '../services/playerExport';
-import { STYLE_PRESETS } from '../constants';
+import { STYLE_PRESETS, CREDIT_COSTS, EXPORT_OPTIONS, ExportDurationType } from '../constants';
+import { drawAudioReactiveWatermark, extractAudioBands } from '../utils/watermark';
 
 interface Step4Props {
   state: AppState;
@@ -12,6 +13,9 @@ interface Step4Props {
   onSpendCredit: (amount: number) => boolean;
   onUploadAudio: (file: File) => void;
   onSaveProject: () => void;
+  onNewDance: () => void;
+  onBackToDirector: () => void;
+  onOpenAuth: () => void;
 }
 
 // PATTERN ENGINE CONSTANTS
@@ -25,7 +29,7 @@ const PATTERNS: Record<PatternType, ('A' | 'B' | 'C')[]> = {
     'CHAOS': ['A', 'C', 'B', 'C']
 };
 
-export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSpendCredit, onUploadAudio, onSaveProject }) => {
+export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSpendCredit, onUploadAudio, onSaveProject, onNewDance, onBackToDirector, onOpenAuth }) => {
   // Canvases
   const bgCanvasRef = useRef<HTMLCanvasElement>(null);
   const charCanvasRef = useRef<HTMLCanvasElement>(null); 
@@ -110,10 +114,11 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
   const [showAdvancedExport, setShowAdvancedExport] = useState(false);
   
   // Advanced Export Options
-  const [exportDuration, setExportDuration] = useState<'loop' | 'full'>('loop'); 
+  const [exportDuration, setExportDuration] = useState<ExportDurationType>('15s-mid');
   const [exportFps, setExportFps] = useState<30 | 60 | 24>(30);
   const [exportResolution, setExportResolution] = useState<'720p' | '1080p' | '4k' | 'portrait'>('720p');
   const [exportBitrate, setExportBitrate] = useState<number>(5000000); // 5Mbps default (Good for sharing)
+  const [removeWatermark, setRemoveWatermark] = useState(false); // Toggle for no watermark (2x cost)
 
   const renderAbortController = useRef<AbortController | null>(null);
 
@@ -664,7 +669,8 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                const url = URL.createObjectURL(blob);
                const a = document.createElement('a');
                a.href = url;
-               a.download = `jusDNCE_${state.selectedStyleId}_${Date.now()}.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+               // Force URL into filename for viral marketing
+               a.download = `jusDNCE-ai.web.app_${state.selectedStyleId}_${Date.now()}.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
                document.body.appendChild(a);
                a.click();
                document.body.removeChild(a);
@@ -675,11 +681,33 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                audioContext.close();
           };
 
+          // Calculate duration and audio offset based on export option
+          const exportOption = EXPORT_OPTIONS[exportDuration];
+          let duration: number;
+          let audioOffset: number = 0;
+
+          if (exportOption.position === 'full') {
+              // Full song - no cap, use entire audio duration
+              duration = audioDuration;
+              audioOffset = 0;
+          } else if (exportOption.position === 'middle') {
+              // Middle of song - 15s centered
+              duration = Math.min(exportOption.durationSec!, audioDuration);
+              audioOffset = Math.max(0, (audioDuration - duration) / 2);
+          } else if (exportOption.position === 'end') {
+              // Last 59s of song
+              duration = Math.min(exportOption.durationSec!, audioDuration);
+              audioOffset = Math.max(0, audioDuration - duration);
+          } else {
+              // Start of song (30s)
+              duration = Math.min(exportOption.durationSec!, audioDuration);
+              audioOffset = 0;
+          }
+
           recorder.start();
-          if (source) source.start(0);
-          
+          if (source) source.start(0, audioOffset, duration);
+
           const startTime = performance.now();
-          const duration = exportDuration === 'loop' ? 15 : Math.min(audioDuration, 60); // Max 60s for safety
           const totalMs = duration * 1000;
           
           // EXPORT PHYSICS
@@ -834,6 +862,13 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                    ctx.restore();
                }
 
+               // AUDIO-REACTIVE RGB WATERMARK (if user is not a subscriber AND hasn't paid for watermark removal)
+               const showWatermark = !state.user?.isSubscriber && !removeWatermark;
+               if (showWatermark) {
+                   const audioBands = extractAudioBands(freq);
+                   drawAudioReactiveWatermark(ctx, width, height, audioBands, elapsed);
+               }
+
                requestAnimationFrame(drawFrame);
           };
           drawFrame();
@@ -843,25 +878,83 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
           setRenderJob({ active: false, progress: 0, status: 'Error' });
           alert("Export failed: " + e);
       }
-  }, [imagesReady, exportResolution, exportFps, exportBitrate, exportDuration, state.audioFile, framesByEnergy, state.selectedStyleId, stutterDensity, stutterPreset, state.superMode]);
+  }, [imagesReady, exportResolution, exportFps, exportBitrate, exportDuration, state.audioFile, framesByEnergy, state.selectedStyleId, stutterDensity, stutterPreset, state.superMode, removeWatermark, state.user?.isSubscriber]);
 
-  const handleExportPlayer = () => {
+  // RE-EXPORT GATING: Super Mode = subscriber only, Turbo/Quality = 1 credit
+  const handleReExport = () => {
+      if (state.superMode) {
+          // Super Mode: Must be subscriber
+          if (!state.user?.isSubscriber) {
+              alert('Super Mode re-exports require a Pro subscription. Upgrade to unlock unlimited re-exports!');
+              // TODO: Open subscription modal when available
+              return;
+          }
+          // Subscribers get unlimited re-exports for Super Mode
+          onBackToDirector();
+      } else {
+          // Turbo/Quality: Must have 1 credit
+          const success = onSpendCredit(CREDIT_COSTS.RE_EXPORT);
+          if (!success) {
+              alert(`Re-export requires ${CREDIT_COSTS.RE_EXPORT} credit. Purchase credits to continue!`);
+              return;
+          }
+          onBackToDirector();
+      }
+  };
+
+  // WIDGET PURCHASE: 20 credits (watermarked unless subscriber)
+  const handleWidgetPurchase = () => {
+      // Check if user has enough credits
+      const success = onSpendCredit(CREDIT_COSTS.WIDGET_PURCHASE);
+      if (!success) {
+          alert(`Widget export requires ${CREDIT_COSTS.WIDGET_PURCHASE} credits. Purchase credits to continue!`);
+          return;
+      }
+
+      // Generate and download the widget
       const style = STYLE_PRESETS.find(s => s.id === state.selectedStyleId);
-      const framesToExport = state.generatedFrames.length > 0 
-          ? state.generatedFrames 
+      const framesToExport = state.generatedFrames.length > 0
+          ? state.generatedFrames
           : [{ url: state.imagePreviewUrl || '', pose: 'base', energy: 'low' as EnergyLevel, type: 'body' as const }];
 
       const html = generatePlayerHTML(
-          framesToExport, 
-          style?.hologramParams || {}, 
-          state.subjectCategory
+          framesToExport,
+          style?.hologramParams || {},
+          state.subjectCategory,
+          state.user?.isSubscriber || false
       );
-      
+
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'My_DNCER_Rig.html';
+      // Force URL into filename for viral marketing
+      a.download = `jusDNCE-ai.web.app_MyDancer_${Date.now()}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  };
+
+  const handleExportPlayer = () => {
+      const style = STYLE_PRESETS.find(s => s.id === state.selectedStyleId);
+      const framesToExport = state.generatedFrames.length > 0
+          ? state.generatedFrames
+          : [{ url: state.imagePreviewUrl || '', pose: 'base', energy: 'low' as EnergyLevel, type: 'body' as const }];
+
+      const html = generatePlayerHTML(
+          framesToExport,
+          style?.hologramParams || {},
+          state.subjectCategory,
+          state.user?.isSubscriber || false
+      );
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // Force URL into filename for viral marketing
+      a.download = `jusDNCE-ai.web.app_MyDancer_${Date.now()}.html`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -874,23 +967,43 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
       {/* TOOLBAR */}
       {!isZenMode && (
           <div className="flex flex-col xl:flex-row items-center justify-between p-4 bg-black/80 border-b border-white/10 backdrop-blur-xl z-20 gap-4">
-             
-             {/* LEFT: SOURCES */}
-             <div className="flex items-center gap-3 w-full xl:w-auto justify-center bg-white/5 p-2 rounded-xl border border-white/5">
-                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest hidden md:block">INPUT</span>
-                 <button 
-                    onClick={toggleMic}
-                    className={`px-4 py-2 rounded-lg transition-all flex items-center gap-2 font-bold text-xs ${isMicActive ? 'bg-red-500 text-white shadow-lg animate-pulse' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-                 >
-                     {isMicActive ? <><MicOff size={16} /> LIVE MIC ACTIVE</> : <><Mic size={16} /> ENABLE MIC</>}
-                 </button>
-                 <button 
-                    onClick={() => audioInputRef.current?.click()}
-                    className="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2 font-bold text-xs"
-                 >
-                     <Upload size={16} /> CHANGE SONG
-                 </button>
-                 <input type="file" ref={audioInputRef} onChange={(e) => { if(e.target.files?.[0]) onUploadAudio(e.target.files[0]) }} className="hidden" accept="audio/*"/>
+
+             {/* LEFT: NAVIGATION + SOURCES */}
+             <div className="flex items-center gap-2 w-full xl:w-auto justify-center">
+                 {/* NAVIGATION BUTTONS */}
+                 <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-white/10">
+                     <button
+                        onClick={onNewDance}
+                        className="px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2 font-bold text-xs"
+                        title="Start fresh with new assets"
+                     >
+                         <Home size={16} /> <span className="hidden sm:inline">NEW</span>
+                     </button>
+                     <button
+                        onClick={handleReExport}
+                        className="px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2 font-bold text-xs"
+                        title={state.superMode ? "Tweak (Pro subscribers only)" : `Tweak (${CREDIT_COSTS.RE_EXPORT} credit)`}
+                     >
+                         <RefreshCw size={16} /> <span className="hidden sm:inline">TWEAK</span>
+                     </button>
+                 </div>
+
+                 {/* AUDIO SOURCES */}
+                 <div className="flex items-center gap-2 bg-white/5 p-1.5 rounded-xl border border-white/5">
+                     <button
+                        onClick={toggleMic}
+                        className={`px-3 py-2 rounded-lg transition-all flex items-center gap-2 font-bold text-xs ${isMicActive ? 'bg-red-500 text-white shadow-lg animate-pulse' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+                     >
+                         {isMicActive ? <><MicOff size={16} /> <span className="hidden sm:inline">MIC ON</span></> : <><Mic size={16} /> <span className="hidden sm:inline">MIC</span></>}
+                     </button>
+                     <button
+                        onClick={() => audioInputRef.current?.click()}
+                        className="px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2 font-bold text-xs"
+                     >
+                         <Upload size={16} /> <span className="hidden sm:inline">SONG</span>
+                     </button>
+                     <input type="file" ref={audioInputRef} onChange={(e) => { if(e.target.files?.[0]) onUploadAudio(e.target.files[0]) }} className="hidden" accept="audio/*"/>
+                 </div>
              </div>
 
              {/* CENTER: PLAYBACK */}
@@ -951,13 +1064,59 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                              </div>
                              
                              <div className="space-y-4">
-                                 {/* DURATION */}
+                                 {/* DURATION - 4 Options */}
                                  <div>
                                      <label className="text-[10px] text-gray-400 font-bold block mb-1.5 uppercase">Output Duration</label>
                                      <div className="grid grid-cols-2 gap-2">
-                                         <button onClick={() => setExportDuration('loop')} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${exportDuration==='loop'?'bg-brand-500/20 border-brand-500 text-white':'border-white/10 text-gray-400 hover:bg-white/5'}`}>15s LOOP</button>
-                                         <button onClick={() => setExportDuration('full')} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${exportDuration==='full'?'bg-brand-500/20 border-brand-500 text-white':'border-white/10 text-gray-400 hover:bg-white/5'}`}>FULL SONG</button>
+                                         {(Object.keys(EXPORT_OPTIONS) as ExportDurationType[]).map(key => {
+                                             const opt = EXPORT_OPTIONS[key];
+                                             return (
+                                                 <button
+                                                     key={key}
+                                                     onClick={() => setExportDuration(key)}
+                                                     className={`py-2 text-[10px] font-bold rounded-lg border transition-all flex flex-col items-center gap-0.5 ${exportDuration===key?'bg-brand-500/20 border-brand-500 text-white':'border-white/10 text-gray-400 hover:bg-white/5'}`}
+                                                 >
+                                                     <span>{opt.label}</span>
+                                                     <span className={`text-[8px] ${exportDuration===key?'text-brand-300':'text-gray-600'}`}>{opt.credits}cr</span>
+                                                 </button>
+                                             );
+                                         })}
                                      </div>
+                                 </div>
+
+                                 {/* WATERMARK TOGGLE */}
+                                 {!state.user?.isSubscriber && (
+                                     <div className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-900/10">
+                                         <label className="flex items-center justify-between cursor-pointer">
+                                             <div>
+                                                 <span className="text-[10px] text-yellow-400 font-bold uppercase">Remove Watermark</span>
+                                                 <p className="text-[8px] text-gray-500 mt-0.5">2x credit cost</p>
+                                             </div>
+                                             <div className="relative">
+                                                 <input
+                                                     type="checkbox"
+                                                     checked={removeWatermark}
+                                                     onChange={(e) => setRemoveWatermark(e.target.checked)}
+                                                     className="sr-only"
+                                                 />
+                                                 <div className={`w-10 h-5 rounded-full transition-colors ${removeWatermark ? 'bg-yellow-500' : 'bg-gray-600'}`}>
+                                                     <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${removeWatermark ? 'translate-x-5' : ''}`}/>
+                                                 </div>
+                                             </div>
+                                         </label>
+                                     </div>
+                                 )}
+
+                                 {/* CREDIT COST DISPLAY */}
+                                 <div className="p-2 rounded-lg bg-brand-500/10 border border-brand-500/30 flex justify-between items-center">
+                                     <span className="text-[10px] text-brand-300 font-bold">TOTAL COST</span>
+                                     <span className="text-sm text-white font-black">
+                                         {(() => {
+                                             const baseCost = EXPORT_OPTIONS[exportDuration].credits;
+                                             const multiplier = (!state.user?.isSubscriber && removeWatermark) ? 2 : 1;
+                                             return `${baseCost * multiplier} credits`;
+                                         })()}
+                                     </span>
                                  </div>
                                  
                                  {/* RESOLUTION */}
@@ -1005,12 +1164,12 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                  </div>
 
                  {/* STANDALONE PLAYER */}
-                <button 
-                    onClick={handleExportPlayer}
+                <button
+                    onClick={handleWidgetPurchase}
                     className="px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-brand-300 transition-all border border-white/10 hover:border-brand-500/30 flex items-center gap-2 text-xs font-bold"
-                    title="Download offline HTML player"
+                    title={`Save standalone widget (${CREDIT_COSTS.WIDGET_PURCHASE} credits${state.user?.isSubscriber ? ', no watermark' : ', watermarked'})`}
                  >
-                     <Package size={16} /> SAVE WIDGET
+                     <Package size={16} /> SAVE WIDGET ({CREDIT_COSTS.WIDGET_PURCHASE}cr)
                  </button>
              </div>
           </div>
@@ -1099,6 +1258,62 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                       </div>
                   </div>
               </div>
+          )}
+
+          {/* WATERMARK & SHARE FOR NON-LOGGED-IN USERS */}
+          {!state.user && !isZenMode && (
+              <>
+                  {/* Diagonal watermark overlay */}
+                  <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="transform -rotate-45 whitespace-nowrap">
+                              <div className="flex items-center gap-8 opacity-20">
+                                  {[...Array(5)].map((_, i) => (
+                                      <span key={i} className="text-white text-4xl font-black tracking-widest">jusDNCE</span>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* Bottom Share & Signup CTA */}
+                  <div className="absolute bottom-4 right-4 z-30 pointer-events-auto">
+                      <div className="bg-gradient-to-r from-brand-600/90 to-purple-600/90 backdrop-blur-xl p-4 rounded-2xl border border-white/20 shadow-2xl max-w-xs animate-slide-in-right">
+                          <div className="flex items-start gap-3 mb-3">
+                              <div className="bg-white/20 p-2 rounded-lg">
+                                  <Share2 size={18} className="text-white" />
+                              </div>
+                              <div>
+                                  <h4 className="text-white font-bold text-sm">Love your dance?</h4>
+                                  <p className="text-white/70 text-xs">Sign up FREE to remove watermark & download!</p>
+                              </div>
+                          </div>
+                          <div className="flex gap-2">
+                              <button
+                                  onClick={() => {
+                                      const text = "Check out my AI dance animation made with jusDNCE!";
+                                      const url = "https://jusdnce-ai.web.app";
+                                      if (navigator.share) {
+                                          navigator.share({ title: 'My jusDNCE Creation', text, url });
+                                      } else {
+                                          navigator.clipboard.writeText(`${text} ${url}`);
+                                          alert('Link copied to clipboard!');
+                                      }
+                                  }}
+                                  className="flex-1 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                              >
+                                  <Share2 size={14} /> SHARE
+                              </button>
+                              <button
+                                  onClick={onOpenAuth}
+                                  className="flex-1 px-4 py-2 bg-white text-brand-700 hover:bg-brand-50 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                              >
+                                  <LogIn size={14} /> SIGN UP
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              </>
           )}
       </div>
       

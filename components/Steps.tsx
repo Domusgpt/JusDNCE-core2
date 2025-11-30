@@ -1,7 +1,7 @@
 
 
 import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { Music, Play, Pause, Check, Wand2, Zap, Film, Coins, CreditCard, Image as ImageIcon, Shuffle, ChevronDown, ChevronUp, Sparkles, Rocket, Mic, Layers, Grid, Sliders, Activity, ArrowRight, Star, X, Save, Trash2, RotateCcw, Download, Bot, BarChart2 } from 'lucide-react';
+import { Music, Play, Pause, Check, Wand2, Zap, Film, Coins, CreditCard, Image as ImageIcon, Shuffle, ChevronDown, ChevronUp, Sparkles, Rocket, Mic, Layers, Grid, Sliders, Activity, ArrowRight, ArrowLeft, Star, X, Save, Trash2, RotateCcw, Download, Bot, BarChart2 } from 'lucide-react';
 import { AppState, StyleCategory, StylePreset, DirectorPreset, StutterMode } from '../types';
 import { STYLE_PRESETS, CREDITS_PACK_PRICE, SUPER_MODE_PRESETS } from '../constants';
 
@@ -221,9 +221,10 @@ interface Step2Props {
   onUpdate: (key: string, value: any) => void;
   onBuyCredits: () => void;
   onTestMode: () => void;
+  onBack: () => void;
 }
 
-export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCredits, onTestMode }) => {
+export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCredits, onTestMode, onBack }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeCategory, setActiveCategory] = useState<StyleCategory>('Cinematic');
   const [newPresetName, setNewPresetName] = useState('');
@@ -306,29 +307,92 @@ export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCre
   ];
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 perspective-1000">
-      
-      {/* Header */}
-      <div className="flex justify-between items-end mb-8 animate-slide-in-right relative">
-        <div>
-           <h2 className="text-4xl font-black text-white flex items-center gap-3 glitch-hover">
-              <span className="bg-brand-500/20 text-brand-300 p-2 rounded-lg border border-brand-500/30">
-                  <Wand2 size={28} />
-              </span>
-              DIRECTOR_MODE
-           </h2>
-           <p className="text-brand-100/60 mt-2 font-mono tracking-widest text-xs uppercase">Configure your quantum simulation parameters</p>
+    <div className="max-w-6xl mx-auto py-4 md:py-8 px-3 md:px-4 perspective-1000">
+
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-6 md:mb-8 animate-slide-in-right relative">
+
+        {/* Top Row: Back + Title */}
+        <div className="flex items-center gap-3">
+           <button
+              onClick={onBack}
+              className="p-2 md:p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-brand-500/50 transition-all group"
+              title="Back to Assets"
+           >
+              <ArrowLeft size={20} className="text-gray-400 group-hover:text-brand-300" />
+           </button>
+           <div>
+             <h2 className="text-2xl md:text-4xl font-black text-white flex items-center gap-2 md:gap-3 glitch-hover">
+                <span className="bg-brand-500/20 text-brand-300 p-1.5 md:p-2 rounded-lg border border-brand-500/30">
+                    <Wand2 size={20} className="md:w-7 md:h-7" />
+                </span>
+                <span className="hidden sm:inline">DIRECTOR_MODE</span>
+                <span className="sm:hidden">DIRECTOR</span>
+             </h2>
+             <p className="text-brand-100/60 mt-1 font-mono tracking-widest text-[10px] md:text-xs uppercase hidden sm:block">Configure your simulation</p>
+           </div>
         </div>
-        
-        <div className="flex flex-col gap-2 items-end">
-             {/* PRESET MANAGER */}
-             <div className="relative">
-                <button 
-                    onClick={() => setShowPresets(!showPresets)}
-                    className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white mb-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/10 hover:border-brand-500/50 transition-all"
-                >
-                    <Save size={12}/> CONFIG PRESETS {config.savedDirectorPresets?.length > 0 && `(${config.savedDirectorPresets.length})`}
-                </button>
+
+        {/* Controls Row - Mobile: horizontal scroll, Desktop: flex-col */}
+        <div className="flex flex-col gap-2 items-stretch md:items-end">
+
+             {/* MOBILE-FIRST: Quick Mode Toggle Row */}
+             <div className="flex gap-2 items-center justify-between md:justify-end">
+                 {/* Turbo/Quality Toggle */}
+                 <div className="flex items-center bg-black/40 backdrop-blur-md px-1 py-1 rounded-full border border-white/10">
+                    <button
+                        onClick={() => onUpdate('useTurbo', true)}
+                        className={`px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold transition-all flex items-center gap-1 md:gap-2 ${config.useTurbo ? 'bg-brand-500 text-white shadow-lg' : 'text-gray-400'}`}
+                    >
+                        <Rocket size={12} /> <span className="hidden xs:inline">TURBO</span>
+                    </button>
+                    <button
+                        onClick={() => onUpdate('useTurbo', false)}
+                        className={`px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-bold transition-all flex items-center gap-1 md:gap-2 ${!config.useTurbo ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400'}`}
+                    >
+                        <Sparkles size={12} /> <span className="hidden xs:inline">QUALITY</span>
+                    </button>
+                 </div>
+
+                 {/* Super Mode Toggle */}
+                 <button
+                    onClick={() => onUpdate('superMode', !config.superMode)}
+                    className={`
+                        px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[10px] md:text-xs font-bold transition-all flex items-center gap-1 md:gap-2 border
+                        ${config.superMode
+                            ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white border-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]'
+                            : 'bg-black/40 text-gray-500 border-gray-700 hover:border-gray-500'}
+                    `}
+                 >
+                    <Star size={12} fill={config.superMode ? "white" : "none"} />
+                    {config.superMode ? "SUPER" : "SUPER MODE"}
+                 </button>
+             </div>
+
+             {/* Secondary Controls Row */}
+             <div className="flex gap-2 items-center justify-between md:justify-end overflow-x-auto pb-1">
+                 <button
+                    onClick={randomizeStyle}
+                    className="glass-button px-3 md:px-5 py-2 rounded-full text-xs font-bold text-white flex items-center gap-2 hover:bg-white/10 whitespace-nowrap"
+                 >
+                    <Shuffle size={14} /> <span className="hidden sm:inline">SURPRISE</span>
+                 </button>
+
+                 <button
+                    onClick={onTestMode}
+                    className="px-3 md:px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 border bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 whitespace-nowrap"
+                 >
+                    <Bot size={14} /> <span className="hidden sm:inline">TEST (FREE)</span><span className="sm:hidden">TEST</span>
+                 </button>
+
+                 {/* PRESET MANAGER */}
+                 <div className="relative">
+                    <button
+                        onClick={() => setShowPresets(!showPresets)}
+                        className="flex items-center gap-1 text-xs font-bold text-gray-400 hover:text-white bg-black/40 px-3 py-2 rounded-full border border-white/10 hover:border-brand-500/50 transition-all"
+                    >
+                        <Save size={12}/> <span className="hidden md:inline">PRESETS</span>
+                    </button>
                 
                 {showPresets && (
                     <div className="absolute top-full right-0 mt-2 w-64 bg-black/95 backdrop-blur-xl border border-white/20 rounded-xl p-4 shadow-2xl z-50 animate-fade-in">
@@ -367,59 +431,7 @@ export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCre
                     </div>
                 )}
             </div>
-
-            <div className="flex gap-2">
-                <button 
-                    onClick={randomizeStyle}
-                    onMouseEnter={() => triggerImpulse('hover', 0.5)}
-                    className="glass-button px-5 py-2.5 rounded-full text-sm font-bold text-white flex items-center gap-2 hover:bg-white/10"
-                >
-                    <Shuffle size={16} className="text-brand-300" /> SURPRISE ME
-                </button>
-                
-                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-1 py-1 rounded-full border border-white/10">
-                    <button
-                        onClick={() => onUpdate('useTurbo', true)}
-                        onMouseEnter={() => triggerImpulse('hover', 0.2)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${config.useTurbo ? 'bg-brand-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        <Rocket size={12} /> TURBO
-                    </button>
-                    <button
-                        onClick={() => onUpdate('useTurbo', false)}
-                        onMouseEnter={() => triggerImpulse('hover', 0.2)}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${!config.useTurbo ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        <Sparkles size={12} /> QUALITY
-                    </button>
-                </div>
-            </div>
-            
-            {/* ACTION BUTTONS ROW */}
-            <div className="flex gap-2 w-full mt-2">
-                 <button
-                    onClick={onTestMode}
-                    onMouseEnter={() => triggerImpulse('hover', 0.2)}
-                    className="flex-1 px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 border bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white hover:border-white/40"
-                    title="Generate mock frames to test rhythm without spending credits"
-                >
-                    <Bot size={14} /> TEST RIG (0 CREDITS)
-                </button>
-                
-                <button
-                    onClick={() => onUpdate('superMode', !config.superMode)}
-                    onMouseEnter={() => triggerImpulse('hover', 0.2)}
-                    className={`
-                        flex-[2] px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 border
-                        ${config.superMode 
-                            ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-white border-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.5)]' 
-                            : 'bg-black/40 text-gray-500 border-gray-700 hover:border-gray-500 hover:text-white'}
-                    `}
-                >
-                    <Star size={12} fill={config.superMode ? "white" : "none"} /> 
-                    {config.superMode ? "SUPER MODE ACTIVE (15 FRAMES + LIP SYNC)" : "ENABLE SUPER MODE (PAID)"}
-                </button>
-            </div>
+             </div>
         </div>
       </div>
 
@@ -507,7 +519,8 @@ export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCre
               {showAdvanced ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
           </button>
           
-          <div className={`transition-all duration-500 ease-in-out ${showAdvanced ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${showAdvanced ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="overflow-y-auto max-h-[700px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
               <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-white/5 bg-black/20">
                   
                   {/* LEFT COL: MOTION & GENERATION */}
@@ -699,6 +712,7 @@ export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCre
                        </div>
                   </div>
               </div>
+              </div>{/* Close scrollable wrapper */}
           </div>
       </div>
     </div>
