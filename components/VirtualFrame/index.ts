@@ -77,6 +77,33 @@ export {
   type UseVirtualFrameReturn,
 } from './useVirtualFrame';
 
+// Sequential Animation System (story, product, tutorial modes)
+export {
+  // Types
+  type AnimationMode,
+  type StoryBeat,
+  type SequentialAnimationConfig,
+  type AnimationSequence,
+  type PlaybackState,
+
+  // Classes
+  SequentialAnimator,
+  SequentialPlayer,
+
+  // Utilities
+  createStorySequence,
+  createProduct360Sequence,
+  createTransformationSequence,
+  createTutorialSequence,
+} from './SequentialAnimator';
+
+// Cartoon Project Hook (multi-scene management)
+export {
+  useCartoonProject,
+  type CartoonProjectConfig,
+  type UseCartoonProjectReturn,
+} from './useCartoonProject';
+
 // Re-export config from constants
 export {
   VIRTUAL_FRAME_CONFIG,
