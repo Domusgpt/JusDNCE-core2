@@ -237,11 +237,14 @@ rm docs/STYLE_PRESET_THUMBNAILS.md
 Script to generate style preview thumbnails using the app's own Gemini API during development. Run once, commit the images, serve forever at $0 cost.
 
 **How It Works:**
-1. Uses Gemini 2.0 Flash image generation
+1. Uses `gemini-2.5-flash-image` (same model as app's main generation in `services/gemini.ts:313`)
 2. Creates 16 style thumbnails (200x200px)
 3. Each image = the style name rendered IN that style
 4. Saves to `public/assets/style-thumbs/`
-5. 2 second delay between requests (rate limiting)
+5. 5 second delay between requests + 3 retries with 60s timeout
+
+**Generated 2025-11-30:**
+All 16 thumbnails successfully generated (~26MB total)
 
 **Usage:**
 ```bash

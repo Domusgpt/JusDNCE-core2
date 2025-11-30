@@ -10,9 +10,13 @@
  * Output: public/assets/style-thumbs/*.png
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Style definitions with generation prompts
 const STYLE_THUMBNAILS = [
@@ -113,15 +117,10 @@ async function generateThumbnails() {
     process.exit(1);
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
+  const ai = new GoogleGenAI({ apiKey });
 
-  // Use Gemini 2.0 Flash for image generation
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
-    generationConfig: {
-      responseModalities: ['image', 'text'],
-    } as any
-  });
+  // Use Gemini 2.5 Flash Image - same model the app uses for generation (services/gemini.ts:313)
+  const model = 'gemini-2.5-flash-image';
 
   // Create output directory
   const outputDir = path.join(__dirname, '../public/assets/style-thumbs');
@@ -138,32 +137,62 @@ async function generateThumbnails() {
   for (const style of STYLE_THUMBNAILS) {
     console.log(`⏳ Generating: ${style.id}...`);
 
-    try {
-      const result = await model.generateContent(style.prompt);
-      const response = await result.response;
+    // Retry logic with timeout for slow connections
+    let retries = 3;
+    let success = false;
 
-      // Extract image from response
-      const parts = response.candidates?.[0]?.content?.parts || [];
-      const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'));
+    while (retries > 0 && !success) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
-      if (imagePart?.inlineData?.data) {
-        const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-        const outputPath = path.join(outputDir, `${style.id}.png`);
-        fs.writeFileSync(outputPath, imageBuffer);
-        console.log(`   ✅ Saved: ${style.id}.png`);
-        successCount++;
-      } else {
-        console.log(`   ⚠️ No image in response for ${style.id}`);
-        failCount++;
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: style.prompt,
+          config: {
+            responseModalities: ['IMAGE', 'TEXT'],
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        // Extract image from response
+        const parts = response.candidates?.[0]?.content?.parts || [];
+        const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'));
+
+        if (imagePart?.inlineData?.data) {
+          const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
+          const outputPath = path.join(outputDir, `${style.id}.png`);
+          fs.writeFileSync(outputPath, imageBuffer);
+          console.log(`   ✅ Saved: ${style.id}.png`);
+          successCount++;
+          success = true;
+        } else {
+          console.log(`   ⚠️ No image in response for ${style.id}`);
+          retries--;
+          if (retries > 0) {
+            console.log(`   🔄 Retrying... (${retries} attempts left)`);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+        }
+
+      } catch (error: any) {
+        retries--;
+        const errorMsg = error.message || 'Unknown error';
+        console.log(`   ❌ Error: ${errorMsg}`);
+        if (retries > 0) {
+          console.log(`   🔄 Retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s before retry
+        }
       }
+    }
 
-      // Rate limiting - wait between requests
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-    } catch (error: any) {
-      console.log(`   ❌ Failed: ${style.id} - ${error.message}`);
+    if (!success) {
       failCount++;
     }
+
+    // Rate limiting - wait between requests (longer for slow connection)
+    await new Promise(resolve => setTimeout(resolve, 5000));
   }
 
   console.log('\n========================================');
