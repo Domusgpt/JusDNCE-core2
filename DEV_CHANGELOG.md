@@ -179,6 +179,92 @@ Created complete onboarding system with:
 
 ---
 
+#### Change #6: Widget/Universal Player Architecture Document
+**File:** `docs/WIDGET_UNIVERSAL_PLAYER.md` (NEW)
+**Time:** 2025-11-29 (Continued Session)
+**Status:** COMPLETED ✅
+
+**Purpose:**
+Document the vision for Widget as a self-contained dance engine that works with any audio source.
+
+**Content:**
+- Audio source abstraction (mic, file, URL, system, extensions)
+- Streaming service integration plans (YouTube Music, Spotify, Pandora)
+- Widget modes: Standalone HTML, iframe embed, extension overlay, desktop app
+- Implementation phases and monetization tiers
+- Technical architecture diagrams
+
+**Files Created:**
+- `docs/WIDGET_UNIVERSAL_PLAYER.md` (335 lines)
+
+**To Undo:**
+```bash
+rm docs/WIDGET_UNIVERSAL_PLAYER.md
+```
+
+---
+
+#### Change #7: Style Preset Thumbnail Design Spec
+**File:** `docs/STYLE_PRESET_THUMBNAILS.md` (NEW)
+**Time:** 2025-11-29 (Continued Session)
+**Status:** COMPLETED ✅
+
+**Purpose:**
+Design spec for style preview thumbnails where "the style IS the preview" - each thumbnail shows the style name rendered IN that style.
+
+**Content:**
+- 16 style thumbnail descriptions with visual effects
+- Generation approaches (AI, CSS/Canvas, manual)
+- File structure for assets
+- Priority order for generation
+
+**Files Created:**
+- `docs/STYLE_PRESET_THUMBNAILS.md` (278 lines)
+
+**To Undo:**
+```bash
+rm docs/STYLE_PRESET_THUMBNAILS.md
+```
+
+---
+
+#### Change #8: One-Time Thumbnail Generator Script
+**Files:** `scripts/generate-style-thumbnails.ts` (NEW), `package.json`
+**Time:** 2025-11-29 (Continued Session)
+**Status:** COMPLETED ✅
+
+**Purpose:**
+Script to generate style preview thumbnails using the app's own Gemini API during development. Run once, commit the images, serve forever at $0 cost.
+
+**How It Works:**
+1. Uses Gemini 2.0 Flash image generation
+2. Creates 16 style thumbnails (200x200px)
+3. Each image = the style name rendered IN that style
+4. Saves to `public/assets/style-thumbs/`
+5. 2 second delay between requests (rate limiting)
+
+**Usage:**
+```bash
+export GEMINI_API_KEY=your_key_here
+npm run generate:thumbs
+```
+
+**Files Created:**
+- `scripts/generate-style-thumbnails.ts` (165 lines)
+- `public/assets/style-thumbs/.gitkeep`
+
+**Files Modified:**
+- `package.json`: Added `"generate:thumbs"` script
+
+**To Undo:**
+```bash
+rm -rf scripts/generate-style-thumbnails.ts
+rm -rf public/assets/style-thumbs/
+# Remove "generate:thumbs" line from package.json scripts
+```
+
+---
+
 ## Backup Information
 - Original branch: `main`
 - Backup created before changes: Yes
@@ -196,10 +282,103 @@ Created complete onboarding system with:
 ---
 
 ## Rollback Instructions
+
+### Full Branch Rollback (Nuclear Option)
+Abandon all changes and return to main:
 ```bash
 git checkout main
 git branch -D feature/ux-improvements-exports-onboarding
 ```
+
+### Selective Rollback by Commit
+View commits on this branch:
+```bash
+git log --oneline main..HEAD
+```
+
+Current commits (newest first):
+```
+1b04de6 🖼️ Add one-time thumbnail generator script
+c48c636 🎨 Add style preset thumbnail design spec
+182d42f 📋 Add Widget/Universal Player architecture document
+d2eefd2 🎓 Integrate onboarding system into App.tsx
+74476db ✨ Add idle-triggered glassmorphic onboarding system
+f7cff55 🎬 Export system overhaul: 4 duration options, credit pricing, watermark toggle
+```
+
+Undo last N commits (keep changes unstaged):
+```bash
+git reset HEAD~N
+```
+
+Undo specific commit:
+```bash
+git revert <commit-hash>
+```
+
+### Per-Feature Rollback
+
+**Remove Thumbnail Generator:**
+```bash
+rm scripts/generate-style-thumbnails.ts
+rm -rf public/assets/style-thumbs/
+# Edit package.json: remove "generate:thumbs" script
+git add -A && git commit -m "Revert: Remove thumbnail generator"
+```
+
+**Remove Style Thumbnail Docs:**
+```bash
+rm docs/STYLE_PRESET_THUMBNAILS.md
+git add -A && git commit -m "Revert: Remove style thumbnail docs"
+```
+
+**Remove Widget Architecture Docs:**
+```bash
+rm docs/WIDGET_UNIVERSAL_PLAYER.md
+git add -A && git commit -m "Revert: Remove widget architecture docs"
+```
+
+**Remove Onboarding System:**
+```bash
+rm components/Onboarding.tsx
+# Edit App.tsx: remove import and <Onboarding /> component
+git add -A && git commit -m "Revert: Remove onboarding system"
+```
+
+**Remove Export System Changes:**
+```bash
+# Edit constants.ts: remove EXPORT_OPTIONS (lines 13-24)
+# Edit Step4Preview.tsx: revert to original export logic
+git add -A && git commit -m "Revert: Remove export system changes"
+```
+
+**Remove Slider Overflow Fix:**
+```bash
+# Edit Steps.tsx: remove scrollable wrapper (lines 522-523, 715)
+git add -A && git commit -m "Revert: Remove slider overflow fix"
+```
+
+---
+
+## Files Summary
+
+### Files Created This Session:
+| File | Lines | Purpose |
+|------|-------|---------|
+| `components/Onboarding.tsx` | 378 | Idle-triggered onboarding system |
+| `docs/WIDGET_UNIVERSAL_PLAYER.md` | 335 | Widget architecture documentation |
+| `docs/STYLE_PRESET_THUMBNAILS.md` | 278 | Style thumbnail design spec |
+| `scripts/generate-style-thumbnails.ts` | 165 | One-time thumbnail generator |
+| `public/assets/style-thumbs/.gitkeep` | 0 | Directory placeholder |
+
+### Files Modified This Session:
+| File | Changes |
+|------|---------|
+| `constants.ts` | Added EXPORT_OPTIONS (lines 13-24) |
+| `components/Steps.tsx` | Added scrollable wrapper (lines 522-523, 715) |
+| `components/Step4Preview.tsx` | Export duration, pricing, watermark toggle |
+| `App.tsx` | Import + render Onboarding component |
+| `package.json` | Added generate:thumbs script |
 
 ---
 
