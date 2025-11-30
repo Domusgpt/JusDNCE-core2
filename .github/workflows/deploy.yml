@@ -5,7 +5,10 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
+      - 'claude/**'  # Deploy feature branches for testing
   pull_request:
     branches: [main, master]
   # Allow manual trigger
