@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { Zap, Layers, LogIn, Activity, FastForward, Upload, FileJson } from 'lucide-react';
+import { Zap, Layers, LogIn, Activity, FastForward, Upload, FileJson, Film } from 'lucide-react';
 import { AppState, AppStep, DEFAULT_STATE, AuthUser, SavedProject } from './types';
 import { STYLE_PRESETS, CREDITS_PER_PACK } from './constants';
 import { Step1Assets, Step2Director } from './components/Steps';
@@ -9,6 +9,7 @@ import { Step4Preview } from './components/Step4Preview';
 import { generateDanceFrames, fileToGenericBase64 } from './services/gemini';
 import { AuthModal, PaymentModal } from './components/Modals';
 import { GlobalBackground } from './components/GlobalBackground';
+import { AnimationStudio } from './components/AnimationStudio';
 
 const triggerImpulse = (type: 'click' | 'hover' | 'type', intensity: number = 1.0) => {
     const event = new CustomEvent('ui-interaction', { detail: { type, intensity } });
@@ -18,6 +19,7 @@ const triggerImpulse = (type: 'click' | 'hover' | 'type', intensity: number = 1.
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(DEFAULT_STATE);
   const [importRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
+  const [showAnimationStudio, setShowAnimationStudio] = useState(false);
 
   const handleImageUpload = async (file: File) => {
     try {
@@ -233,8 +235,8 @@ const App: React.FC = () => {
       <div className="relative z-10 flex flex-col h-screen flex-1">
         
         {/* MODALS */}
-        <AuthModal 
-            isOpen={appState.showAuthModal} 
+        <AuthModal
+            isOpen={appState.showAuthModal}
             onClose={() => setAppState(prev => ({ ...prev, showAuthModal: false }))}
             onLogin={handleLogin}
         />
@@ -243,6 +245,24 @@ const App: React.FC = () => {
             onClose={() => setAppState(prev => ({ ...prev, showPaymentModal: false }))}
             onSuccess={handlePaymentSuccess}
         />
+
+        {/* Animation Studio */}
+        {showAnimationStudio && (
+            <AnimationStudio
+                sourceImage={appState.imagePreviewUrl || ''}
+                audioFile={appState.audioFile}
+                onExport={(blob) => {
+                    // Download the video
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `animation_${Date.now()}.mp4`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }}
+                onClose={() => setShowAnimationStudio(false)}
+            />
+        )}
 
         {/* HEADER */}
         <header className="border-b border-white/5 bg-black/10 backdrop-blur-md sticky top-0 z-50">
@@ -268,6 +288,20 @@ const App: React.FC = () => {
             
             {/* RIGHT SIDE CONTROLS */}
             <div className="flex items-center gap-4">
+                {/* ANIMATION STUDIO BUTTON */}
+                {appState.imagePreviewUrl && (
+                    <button
+                        onClick={() => {
+                            setShowAnimationStudio(true);
+                            triggerImpulse('click', 1.0);
+                        }}
+                        onMouseEnter={() => triggerImpulse('hover', 0.4)}
+                        className="glass-button px-4 py-2 rounded-full text-xs font-bold text-white flex items-center gap-2 border border-purple-500/30 hover:border-purple-400/50 bg-purple-500/10 hover:bg-purple-500/20"
+                    >
+                        <Film size={14} className="text-purple-300" /> STUDIO
+                    </button>
+                )}
+
                 {/* IMPORT BUTTON */}
                 <button
                     onClick={() => importRef.current?.click()}
