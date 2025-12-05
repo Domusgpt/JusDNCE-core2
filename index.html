@@ -153,6 +153,17 @@
         color: #a78bfa;
       }
     </style>
+    <!-- SPA redirect handler for GitHub Pages -->
+    <script>
+      (function() {
+        var redirect = sessionStorage.getItem('spa-redirect');
+        if (redirect) {
+          sessionStorage.removeItem('spa-redirect');
+          console.log('[SPA] Restored path:', redirect);
+          window.__SPA_REDIRECT_PATH__ = redirect;
+        }
+      })();
+    </script>
   <script type="importmap">
 {
   "imports": {
@@ -167,5 +178,6 @@
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
