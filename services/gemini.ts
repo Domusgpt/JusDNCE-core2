@@ -3,8 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedFrame, PoseType, EnergyLevel, SubjectCategory, FrameType } from "../types";
 
 // HARDCODED KEY FOR IMMEDIATE DEPLOYMENT AS REQUESTED
-// Updated: Dec 2025 - Fixed expired API key
-const API_KEY = process.env.API_KEY || 'AIzaSyD_SjDb6huAMMCPdSfxUDlvEM9qwnYEYXQ';
+// Updated: Dec 2025 - Fixed leaked/revoked API key
+const API_KEY = process.env.API_KEY || 'AIzaSyCgj1Z6-q-Px9cvgAcN3RlGWQyfFYAZH2k';
 
 // --- UTILITIES ---
 
@@ -331,6 +331,10 @@ const generateSingleFrame = async (ai: GoogleGenAI, mimeType: string, data: stri
                 console.log(`⏳ Rate limited, waiting ${2000 * (attempt + 1)}ms...`);
                 await delay(2000 * (attempt + 1) + Math.random() * 500);
                 attempt++;
+            } else if (e.message?.includes('leaked') || e.message?.includes('revoked')) {
+                console.error(`🔐 API KEY ISSUE: ${e.message}`);
+                console.error(`🚨 The API key has been compromised and needs to be replaced!`);
+                throw new Error('API key has been revoked. Please update the API key.');
             } else {
                 console.error(`❌ Generation failed with error: ${e.message}`);
                 console.error(`📝 Prompt used: ${fullPrompt}`);
