@@ -3,7 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedFrame, PoseType, EnergyLevel, SubjectCategory, FrameType } from "../types";
 
 // HARDCODED KEY FOR IMMEDIATE DEPLOYMENT AS REQUESTED
-const API_KEY = process.env.API_KEY || 'AIzaSyDFjSQY6Ne38gtzEd6Q_5zyyW65ah5_anw';
+// Updated: Dec 2025 - Fixed expired API key
+const API_KEY = process.env.API_KEY || 'AIzaSyD_SjDb6huAMMCPdSfxUDlvEM9qwnYEYXQ';
 
 // --- UTILITIES ---
 
