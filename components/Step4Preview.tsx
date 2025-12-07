@@ -606,6 +606,24 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
           return;
       }
       
+      // Check if we actually have frames to export
+      if (state.generatedFrames.length === 0) {
+          alert("No frames available to export. Please generate frames first.");
+          return;
+      }
+      
+      // Validate frames have image data
+      const framesWithImages = state.generatedFrames.filter(frame => 
+          frame.url && (frame.url.startsWith('data:image/') || frame.url.startsWith('blob:'))
+      );
+      
+      if (framesWithImages.length === 0) {
+          alert("No valid image frames found. Please regenerate frames.");
+          return;
+      }
+      
+      console.log(`Starting export with ${framesWithImages.length} valid frames`);
+      
       renderAbortController.current = new AbortController();
       setRenderJob({ active: true, progress: 0, status: 'Preparing Assets...' });
       
@@ -679,7 +697,7 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
           if (source) source.start(0);
           
           const startTime = performance.now();
-          const duration = exportDuration === 'loop' ? 15 : Math.min(audioDuration, 60); // Max 60s for safety
+          const duration = exportDuration === 'loop' ? 15 : Math.min(audioDuration, 8 * 60); // 8 minute limit
           const totalMs = duration * 1000;
           
           // EXPORT PHYSICS
