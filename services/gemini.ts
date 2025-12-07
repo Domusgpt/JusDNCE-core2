@@ -326,10 +326,14 @@ const generateSingleFrame = async (ai: GoogleGenAI, mimeType: string, data: stri
             }
             return null; 
         } catch (e: any) {
+            console.error(`🎭 Frame generation attempt ${attempt + 1} failed:`, e.message);
             if (e.message?.includes('429')) {
+                console.log(`⏳ Rate limited, waiting ${2000 * (attempt + 1)}ms...`);
                 await delay(2000 * (attempt + 1) + Math.random() * 500);
                 attempt++;
             } else {
+                console.error(`❌ Generation failed with error: ${e.message}`);
+                console.error(`📝 Prompt used: ${fullPrompt}`);
                 return null;
             }
         }
@@ -338,13 +342,28 @@ const generateSingleFrame = async (ai: GoogleGenAI, mimeType: string, data: stri
 };
 
 export const generateDanceFrames = async (originalImageBase64: string, stylePrompt: string, motionPrompt: string, useTurbo: boolean, superMode: boolean, isMock: boolean = false): Promise<{ frames: GeneratedFrame[], category: SubjectCategory }> => {
+  console.log('🎭 Starting jusDNCE generation with params:', {
+    imageSize: originalImageBase64?.length,
+    stylePrompt: stylePrompt?.substring(0, 50) + '...',
+    motionPrompt,
+    useTurbo,
+    superMode,
+    isMock,
+    hasAPIKey: !!API_KEY
+  });
+
   // TEST MODE / MOCK GENERATION (0 CREDITS)
   if (isMock) {
       await delay(1000); 
       return { frames: getMockFrames(originalImageBase64), category: 'CHARACTER' };
   }
   
-  if (!API_KEY) throw new Error("Missing API Key");
+  if (!API_KEY) {
+    console.error('❌ No API key found!');
+    throw new Error("Missing API Key");
+  }
+  
+  console.log('✅ API key present, initializing GoogleGenAI...');
   const ai = new GoogleGenAI({ apiKey: API_KEY });
   
   // OPTIMIZATION: Ensure input is resized to 384px before planning/generation
@@ -364,7 +383,20 @@ export const generateDanceFrames = async (originalImageBase64: string, styleProm
   
   const generatedFrames = results.filter(r => r !== null) as GeneratedFrame[];
 
-  if (generatedFrames.length === 0) throw new Error("Generation failed.");
+  if (generatedFrames.length === 0) {
+    console.error("No frames were generated. Plans:", plans);
+    console.error("API responses:", results);
+    throw new Error("No frames were generated. This could be due to API quota limits, content policy issues, or network problems. Check browser console for details.");
+  }
+  
+  // Validate frames have proper image data
+  const framesWithoutImages = generatedFrames.filter(frame => 
+    !frame.url || (!frame.url.startsWith('data:image/') && !frame.url.startsWith('blob:'))
+  );
+  
+  if (framesWithoutImages.length > 0) {
+    console.warn("Some frames are missing image data:", framesWithoutImages);
+  }
 
   // Mirroring
   let mirroredFrames: GeneratedFrame[] = [];
@@ -386,6 +418,13 @@ export const generateDanceFrames = async (originalImageBase64: string, styleProm
       ...generatedFrames, 
       ...mirroredFrames
   ];
+
+  console.log('🎉 Generation completed successfully!', {
+    originalFrames: generatedFrames.length,
+    mirroredFrames: mirroredFrames.length,
+    totalFrames: allFrames.length,
+    category
+  });
 
   return { frames: allFrames, category };
 };
