@@ -1,0 +1,22 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- jusDNCE logo - dancing figure with music waves -->
+  <rect width="32" height="32" fill="#0F0F23"/>
+  
+  <!-- Dancing figure -->
+  <circle cx="16" cy="8" r="2" fill="#00FFFF"/>
+  <path d="M14 12 L18 12 L17 20 L15 20 Z" fill="#FF00FF"/>
+  <path d="M13 14 L11 18 L13 18" stroke="#8B5CF6" stroke-width="2" fill="none"/>
+  <path d="M19 14 L21 18 L19 18" stroke="#8B5CF6" stroke-width="2" fill="none"/>
+  <path d="M15 20 L13 26 L15 26" stroke="#00FFFF" stroke-width="2" fill="none"/>
+  <path d="M17 20 L19 26 L17 26" stroke="#00FFFF" stroke-width="2" fill="none"/>
+  
+  <!-- Music waves -->
+  <path d="M4 16 Q6 12 8 16 Q10 20 12 16" stroke="#FF00FF" stroke-width="1.5" fill="none" opacity="0.7"/>
+  <path d="M20 16 Q22 12 24 16 Q26 20 28 16" stroke="#00FFFF" stroke-width="1.5" fill="none" opacity="0.7"/>
+  
+  <!-- Sparkles -->
+  <circle cx="6" cy="6" r="0.5" fill="#8B5CF6"/>
+  <circle cx="26" cy="8" r="0.5" fill="#FF00FF"/>
+  <circle cx="8" cy="26" r="0.5" fill="#00FFFF"/>
+  <circle cx="24" cy="24" r="0.5" fill="#8B5CF6"/>
+</svg>
