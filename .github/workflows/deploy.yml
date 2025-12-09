@@ -45,9 +45,9 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Note: For production, set GEMINI_API_KEY as a GitHub secret
-          # Users will need to provide their own API key in the app
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # API keys from GitHub secrets
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
