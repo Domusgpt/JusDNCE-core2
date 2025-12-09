@@ -2,9 +2,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedFrame, PoseType, EnergyLevel, SubjectCategory, FrameType } from "../types";
 
-// HARDCODED KEY FOR IMMEDIATE DEPLOYMENT AS REQUESTED
-// Updated: Dec 2025 - Fixed leaked/revoked API key
-const API_KEY = process.env.API_KEY || 'AIzaSyCgj1Z6-q-Px9cvgAcN3RlGWQyfFYAZH2k';
+// API KEY from environment variables only - SECURE
+// ALL hardcoded keys have been removed for security
+const API_KEY = process.env.VITE_GEMINI_API_KEY;
 
 // --- UTILITIES ---
 
