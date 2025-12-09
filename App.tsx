@@ -18,6 +18,14 @@ import { generateDanceFrames, fileToGenericBase64 } from './services/gemini';
 import { AuthModal, PaymentModal } from './components/Modals';
 import { GlobalBackground } from './components/GlobalBackground';
 import { Onboarding } from './components/Onboarding';
+import {
+  UFOWidget,
+  SmartUploadGuide,
+  HelpModal,
+  IntroAnimation,
+  GenerationCompletePopup,
+  useHelpSystem
+} from './components/HelpSystem';
 import { auth, googleProvider, functions, signInWithGoogle } from './services/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import {
@@ -36,6 +44,9 @@ const triggerImpulse = (type: 'click' | 'hover' | 'type', intensity: number = 1.
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(DEFAULT_STATE);
   const [importRef] = useState<React.RefObject<HTMLInputElement>>(React.createRef());
+
+  // Help System
+  const helpSystem = useHelpSystem();
 
   // Firebase Authentication Listener
   useEffect(() => {
@@ -108,6 +119,8 @@ const App: React.FC = () => {
           imagePreviewUrl: base64,
           generatedFrames: []
         }));
+        // Dismiss upload guide when image is uploaded
+        helpSystem.onImageUploaded();
     } catch (e: any) {
         console.error("Image upload processing failed:", e);
         alert(`Failed to load image: ${e.message || "Unknown error"}`);
@@ -282,6 +295,9 @@ const App: React.FC = () => {
             subjectCategory: category, // Store detection result
             isGenerating: false
         }));
+
+        // Show "Audition Ready" popup
+        helpSystem.showAuditionComplete();
     } catch (e: any) {
         console.error("Generation Failed:", e);
         const msg = e.message || "Unknown error";
@@ -464,7 +480,7 @@ const App: React.FC = () => {
 
         {/* PROMOTIONAL BANNER FOR NON-LOGGED USERS */}
         {!appState.user && (
-            <div className="bg-gradient-to-r from-brand-600/80 via-purple-600/80 to-pink-600/80 backdrop-blur-md border-b border-white/10 px-4 py-3 relative overflow-hidden">
+            <div className="bg-gradient-to-r from-brand-600/80 via-purple-600/80 to-pink-600/80 backdrop-blur-md border-b border-white/10 px-4 py-3 relative overflow-hidden z-10">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMjAgMjBMMjAgMEwyMCAyMEwwIDIwTDIwIDIwTDQwIDIwTDIwIDIwTDIwIDQwTDIwIDIwIiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjA1Ii8+PC9zdmc+')] opacity-30" />
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 relative z-10">
                     <div className="flex items-center gap-2 text-white text-sm font-medium">
@@ -485,6 +501,43 @@ const App: React.FC = () => {
 
         {/* ONBOARDING OVERLAY - Idle-triggered guidance */}
         <Onboarding currentStep={appState.step + 1} />
+
+        {/* HELP SYSTEM - UFO Widgets + Smart Guidance */}
+        <UFOWidget
+          onClick={helpSystem.openHelp}
+          label="DON'T PANIC"
+          isHighlighted={helpSystem.isHighlighted}
+          position="bottom-right"
+          variant="help"
+        />
+        {appState.step === AppStep.DIRECTOR && (
+          <UFOWidget
+            onClick={helpSystem.openHelp}
+            label="BOOGIE BREAKDOWN"
+            position="bottom-left"
+            variant="boogie"
+          />
+        )}
+        <HelpModal
+          isOpen={helpSystem.isHelpOpen}
+          onClose={helpSystem.closeHelp}
+          currentStep={(appState.step + 1) as 1 | 2 | 3 | 4}
+        />
+        {helpSystem.showIntro && (
+          <IntroAnimation onComplete={helpSystem.completeIntro} />
+        )}
+        {/* Smart guide when no image uploaded on first page */}
+        {appState.step === AppStep.ASSETS && !appState.imagePreviewUrl && (
+          <SmartUploadGuide
+            isVisible={helpSystem.showUploadGuide}
+            onDismiss={helpSystem.dismissUploadGuide}
+          />
+        )}
+        <GenerationCompletePopup
+          isVisible={helpSystem.showGenerationPopup}
+          onClose={() => {}}
+          type={helpSystem.popupType}
+        />
 
         {/* MAIN CONTENT AREA */}
         <main className="flex-1 p-6 overflow-y-auto scrollbar-hide relative">

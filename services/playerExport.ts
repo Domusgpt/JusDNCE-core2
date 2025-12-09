@@ -1,12 +1,17 @@
 
 import { GeneratedFrame, SubjectCategory } from "../types";
 import { VERTEX_SHADER, FRAGMENT_SHADER, HolographicParams } from "../components/Visualizer/HolographicVisualizer";
+import { getWatermarkCode } from "../utils/watermark";
 
 export const generatePlayerHTML = (
     frames: GeneratedFrame[],
     hologramParams: HolographicParams,
-    subjectCategory: SubjectCategory
+    subjectCategory: SubjectCategory,
+    isSubscriber: boolean = false
 ): string => {
+
+    // Get embedded watermark code for standalone HTML
+    const watermarkCode = getWatermarkCode();
     
     const framesJSON = JSON.stringify(frames);
     const paramsJSON = JSON.stringify(hologramParams);
@@ -18,11 +23,14 @@ export const generatePlayerHTML = (
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DNCE-R Standalone Widget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; user-select: none; }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         #bgCanvas { z-index: 1; transition: opacity 0.3s; }
         #charCanvas { z-index: 2; pointer-events: none; }
+        #watermarkCanvas { z-index: 3; pointer-events: none; }
         
         /* UI OVERLAY */
         #ui {
@@ -77,6 +85,62 @@ export const generatePlayerHTML = (
             position: absolute; top: 20px; left: 20px; z-index: 5;
             color: rgba(255,255,255,0.3); font-size: 10px; pointer-events: none;
         }
+
+        /* PRE-ROLL SPLASH */
+        #preroll {
+            position: absolute; inset: 0; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+        }
+        #preroll h1 {
+            font-family: 'Rajdhani', sans-serif; font-size: 5em; font-weight: 700;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899, #8b5cf6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin: 0 0 10px 0; letter-spacing: 0.1em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        #preroll p { color: rgba(255,255,255,0.7); margin: 5px 0; font-size: 14px; }
+        #preroll .promo {
+            color: #10b981; font-weight: bold; font-size: 16px;
+            background: rgba(16, 185, 129, 0.1); padding: 8px 16px; border-radius: 8px;
+            border: 1px solid rgba(16, 185, 129, 0.3); margin-top: 10px;
+        }
+        #preroll button {
+            margin-top: 30px; padding: 16px 48px; font-size: 18px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border: none; border-radius: 16px; color: white; font-weight: bold;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #preroll button:hover { transform: scale(1.05); box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4); }
+
+        /* CORNER BADGE */
+        #badge {
+            position: absolute; bottom: 20px; right: 20px; z-index: 20;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+            padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(139, 92, 246, 0.3);
+            color: rgba(255,255,255,0.8); text-decoration: none; font-size: 11px; font-weight: bold;
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        #badge:hover { background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6; color: white; }
+        #badge svg { width: 14px; height: 14px; fill: currentColor; }
+
+        /* END SCREEN */
+        #endscreen {
+            position: absolute; inset: 0; z-index: 90;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(20px);
+        }
+        #endscreen.active { display: flex; }
+        #endscreen h2 { font-family: 'Rajdhani', sans-serif; font-size: 2.5em; color: white; margin: 0 0 10px 0; }
+        #endscreen p { color: rgba(255,255,255,0.7); margin: 5px 0 25px 0; font-size: 16px; }
+        #endscreen a {
+            padding: 16px 40px; font-size: 16px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-radius: 14px; color: white; font-weight: bold;
+            text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #endscreen a:hover { transform: scale(1.05); box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4); }
     </style>
 </head>
 <body class="drag-over-target">
@@ -84,15 +148,39 @@ export const generatePlayerHTML = (
     <!-- CANVAS LAYERS -->
     <canvas id="bgCanvas"></canvas>
     <canvas id="charCanvas"></canvas>
-    
+    <canvas id="watermarkCanvas"></canvas>
+
+    <!-- PRE-ROLL SPLASH -->
+    <div id="preroll">
+        <h1>jusDNCE</h1>
+        <p>Create your own AI dance animations</p>
+        <p class="promo">Sign up now: 5 FREE credits!</p>
+        <button onclick="startPlayback()">▶ Play</button>
+    </div>
+
+    <!-- CORNER BADGE (always visible for watermarked exports) -->
+    ${!isSubscriber ? `
+    <a id="badge" href="https://jusdnce-ai.web.app?ref=widget" target="_blank">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        Made with jusDNCE
+    </a>
+    ` : ''}
+
+    <!-- END SCREEN CTA -->
+    <div id="endscreen">
+        <h2>Like this vibe?</h2>
+        <p>Create your own AI dance animation in seconds</p>
+        <a href="https://jusdnce-ai.web.app?promo=SHARE5" target="_blank">Get 5 FREE Credits →</a>
+    </div>
+
     <!-- OVERLAYS -->
     <div id="loader">
         <div class="spinner"></div>
         <div style="color: #666; font-size: 12px; letter-spacing: 2px;">INITIALIZING DNCE-R RIG...</div>
     </div>
-    
+
     <div id="dropOverlay">DROP AUDIO FILE HERE</div>
-    
+
     <div id="info">
         DNCE-R // ${subjectCategory}<br>
         <span id="fps">0 FPS</span>
@@ -114,6 +202,12 @@ export const generatePlayerHTML = (
         const FRAMES = ${framesJSON};
         const PARAMS = ${paramsJSON};
         const SUBJECT = "${subjectCategory}";
+        const IS_WATERMARKED = ${!isSubscriber};
+        let playbackStarted = false;
+        let playbackTime = 0;
+
+        // --- WATERMARK SYSTEM ---
+        ${watermarkCode}
         
         // --- SHADER SOURCE ---
         const VERTEX = \`${VERTEX_SHADER}\`;
@@ -212,10 +306,30 @@ export const generatePlayerHTML = (
         // --- 2. SETUP ---
         const bgC = document.getElementById('bgCanvas');
         const charC = document.getElementById('charCanvas');
+        const wmC = document.getElementById('watermarkCanvas');
         const ctx = charC.getContext('2d');
+        const wmCtx = wmC.getContext('2d');
         const loader = document.getElementById('loader');
-        
+        const preroll = document.getElementById('preroll');
+        const endscreen = document.getElementById('endscreen');
+
         const viz = new Visualizer(bgC);
+
+        // --- PRE-ROLL & END SCREEN LOGIC ---
+        function startPlayback() {
+            preroll.style.opacity = 0;
+            setTimeout(() => preroll.remove(), 500);
+            playbackStarted = true;
+            playbackTime = Date.now();
+        }
+
+        function showEndScreen() {
+            if (!playbackStarted) return;
+            endscreen.classList.add('active');
+        }
+
+        // Show end screen after 60 seconds
+        setTimeout(() => { if (playbackStarted) showEndScreen(); }, 60000);
         
         // Asset Management
         const IMAGES = {};
@@ -473,7 +587,15 @@ export const generatePlayerHTML = (
                     drawChannel('norm', 0, 0, 0, 0);
                 }
             }
-            
+
+            // 6. Render Watermark (if not subscriber)
+            if (IS_WATERMARKED && playbackStarted) {
+                if(wmC.width !== w || wmC.height !== h) { wmC.width=w; wmC.height=h; }
+                wmCtx.clearRect(0, 0, w, h);
+                const audio = { bass, mid, high };
+                drawAudioReactiveWatermark(wmCtx, w, h, audio, Date.now() - playbackTime);
+            }
+
             // Stats
             document.getElementById('fps').innerText = Math.round(1/dt) + ' FPS';
         }

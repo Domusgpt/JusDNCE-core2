@@ -31,7 +31,11 @@ const fileToBase64 = (file: File): Promise<string> => {
     });
 };
 
-const resizeImage = (file: File | string, maxDim: number = 384): Promise<string> => {
+// OPTIMIZATION: Use 312px for cost efficiency (user request)
+// This significantly reduces input tokens while maintaining quality
+const OPTIMIZED_INPUT_SIZE = 312;
+
+const resizeImage = (file: File | string, maxDim: number = OPTIMIZED_INPUT_SIZE): Promise<string> => {
     return new Promise((resolve, reject) => {
         let src = '';
         if (typeof file === 'string') {
@@ -111,10 +115,10 @@ const mirrorImage = (base64: string): Promise<string> => {
 };
 
 export const fileToGenericBase64 = async (file: File): Promise<string> => {
-  try { 
-      return await resizeImage(file, 384); 
-  } catch (e: any) { 
-      try { return await fileToBase64(file); } 
+  try {
+      return await resizeImage(file, OPTIMIZED_INPUT_SIZE); // 312px for cost efficiency
+  } catch (e: any) {
+      try { return await fileToBase64(file); }
       catch (e2: any) { throw new Error("Failed to process file"); }
   }
 };
@@ -346,9 +350,9 @@ export const generateDanceFrames = async (originalImageBase64: string, styleProm
   if (!API_KEY) throw new Error("Missing API Key");
   const ai = new GoogleGenAI({ apiKey: API_KEY });
   
-  // OPTIMIZATION: Ensure input is resized to 384px before planning/generation
-  // This reduces input tokens significantly
-  const optimizedInputBase64 = await resizeImage(originalImageBase64, 384);
+  // OPTIMIZATION: Ensure input is resized to 312px before planning/generation
+  // This reduces input tokens significantly for cost efficiency
+  const optimizedInputBase64 = await resizeImage(originalImageBase64, OPTIMIZED_INPUT_SIZE);
   const { mimeType, data } = parseDataUri(optimizedInputBase64);
 
   const { plans, category } = await planAnimationSequence(ai, optimizedInputBase64, motionPrompt, stylePrompt, useTurbo, superMode);

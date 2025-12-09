@@ -519,9 +519,9 @@ export const Step2Director: React.FC<Step2Props> = ({ config, onUpdate, onBuyCre
               {showAdvanced ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
           </button>
           
-          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${showAdvanced ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-              <div className="overflow-y-auto max-h-[700px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
-              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-white/5 bg-black/20">
+          <div className={`transition-all duration-500 ease-in-out overflow-hidden ${showAdvanced ? 'max-h-[70vh] md:max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className="overflow-y-auto max-h-[65vh] md:max-h-[700px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/20 hover:scrollbar-thumb-white/30">
+              <div className="p-4 md:p-8 grid grid-cols-1 gap-6 md:gap-8 border-t border-white/5 bg-black/20">
                   
                   {/* LEFT COL: MOTION & GENERATION */}
                   <div className="space-y-6">

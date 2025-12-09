@@ -363,24 +363,89 @@ git add -A && git commit -m "Revert: Remove slider overflow fix"
 
 ---
 
+#### Change #9: "Don't Panic" Help System
+**Files:** `components/HelpSystem.tsx` (NEW), `App.tsx`, `types.ts`, `index.html`
+**Time:** 2025-11-30
+**Status:** COMPLETED ✅
+
+**Problem:**
+New users need comprehensive contextual help. Need "Don't Panic" floating button, "The Boogie Breakdown" for Director controls, and better defaults.
+
+**Solution:**
+Created complete help system with:
+
+1. **DontPanicButton** - Floating gradient button (bottom-right) with:
+   - Cyan/purple/magenta gradient styling
+   - Sparkle icon accents
+   - Highlighted state for first-time users
+   - Triggers help modal
+
+2. **HelpModal** - Context-aware help per step:
+   - Step 1: Upload guidance (DNCE-R = dancer concept)
+   - Step 2: Style selection tips
+   - Step 3: "The Boogie Breakdown" - full Director controls guide with credit costs, modes, and subscription upsell
+   - Step 4: Export guide with DNCE-R terminology
+
+3. **IntroAnimation** - First-visit overlay:
+   - "DON'T PANIC" fade-in animation
+   - Parallax "help" text tiles background
+   - Arrow pointing to help button
+   - Skip button
+   - localStorage persistence
+
+4. **GenerationCompletePopup** - Success notifications:
+   - "Your DNCE-R's Audition is Ready!" for first generation
+   - "Re-Export Complete!" for re-exports
+   - Bouncy animation entry (animate-bounce-in)
+
+5. **ParallaxHelpTiles** - Animated background:
+   - 120 "help" text tiles in various colors
+   - 3-layer parallax depth on mouse move
+   - Subtle rotation per tile
+
+6. **Tooltip** - Reusable hover tooltip component for future input hints
+
+7. **Defaults Changed:**
+   - Style: `natural` (Cinematic Realism) instead of `neon-cyber`
+   - Mode: Quality (8 frames) instead of Turbo (4 frames)
+
+**Files Created:**
+- `components/HelpSystem.tsx` (668 lines)
+
+**Files Modified:**
+- `App.tsx`: Import HelpSystem, add helpSystem hook, render components, trigger popup on generation complete
+- `types.ts`: Changed `selectedStyleId` to 'natural', `useTurbo` to false
+- `index.html`: Added bounceIn animation keyframes
+
+**Testing Required:**
+- Clear localStorage, load app → should see "DON'T PANIC" intro
+- Click "Don't Panic" button → should see help modal
+- Navigate to each step → help content should change
+- Complete a generation → should see "Audition Ready" popup
+
+---
+
 ## Files Summary
 
 ### Files Created This Session:
 | File | Lines | Purpose |
 |------|-------|---------|
 | `components/Onboarding.tsx` | 378 | Idle-triggered onboarding system |
+| `components/HelpSystem.tsx` | 668 | Don't Panic help system |
 | `docs/WIDGET_UNIVERSAL_PLAYER.md` | 335 | Widget architecture documentation |
 | `docs/STYLE_PRESET_THUMBNAILS.md` | 278 | Style thumbnail design spec |
 | `scripts/generate-style-thumbnails.ts` | 165 | One-time thumbnail generator |
-| `public/assets/style-thumbs/.gitkeep` | 0 | Directory placeholder |
+| `public/assets/style-thumbs/*.png` | 16 files | AI-generated style thumbnails |
 
 ### Files Modified This Session:
 | File | Changes |
 |------|---------|
-| `constants.ts` | Added EXPORT_OPTIONS (lines 13-24) |
+| `constants.ts` | Added EXPORT_OPTIONS, updated thumbnail paths |
 | `components/Steps.tsx` | Added scrollable wrapper (lines 522-523, 715) |
 | `components/Step4Preview.tsx` | Export duration, pricing, watermark toggle |
-| `App.tsx` | Import + render Onboarding component |
+| `App.tsx` | Import + render Onboarding, HelpSystem, trigger generation popup |
+| `types.ts` | Changed defaults to Quality mode + Cinematic Realism |
+| `index.html` | Added bounceIn animation keyframes |
 | `package.json` | Added generate:thumbs script |
 
 ---

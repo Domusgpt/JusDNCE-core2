@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User uploads - each user can only access their own folder
+    match /users/{userId}/{allPaths=**} {
+      // Users can read their own files
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // Users can upload to their own folder
+      // Limit file size to 10MB and only allow images/videos
+      allow write: if isAuthenticated()
+        && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|video/.*');
+    }
+
+    // Generated outputs - users can read their own generations
+    match /generations/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if false; // Only functions can write
+    }
+
+    // Public assets (app images, etc.)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Default deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

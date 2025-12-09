@@ -126,7 +126,7 @@ export const DEFAULT_STATE: AppState = {
   imagePreviewUrl: null,
   audioFile: null,
   audioPreviewUrl: null,
-  selectedStyleId: 'neon-cyber',
+  selectedStyleId: 'natural', // Cinematic Realism - preserves original aesthetic
   
   secondaryStyleId: '',
   morphIntensity: 0,
@@ -135,7 +135,7 @@ export const DEFAULT_STATE: AppState = {
   motionPrompt: '', // Default empty for auto-analysis
   motionPreset: 'auto', 
   superModeMotionPreset: 'triplet-flow',
-  useTurbo: true, // Default to fast
+  useTurbo: false, // Default to Quality mode (8 frames, better choreography)
   superMode: false, // Default off
   
   intensity: 80, // High default
