@@ -6,6 +6,11 @@ import { QuantumVisualizer } from './Visualizer/HolographicVisualizer';
 import { generatePlayerHTML } from '../services/playerExport';
 import { STYLE_PRESETS, CREDIT_COSTS, EXPORT_OPTIONS, ExportDurationType } from '../constants';
 import { drawAudioReactiveWatermark, extractAudioBands } from '../utils/watermark';
+import { cameraSequenceManager, CameraMotionType } from '../services/CameraSequenceManager';
+import { lightingDirector, LightingEffectType } from '../services/LightingDirector';
+import { engagementManager, GenerationPhase } from '../services/EngagementManager';
+import { predictiveChoreographyEngine } from '../services/PredictiveChoreographyEngine';
+import { adaptiveChoreographyIntegration } from '../services/AdaptiveChoreographyIntegration';
 
 interface Step4Props {
   state: AppState;
@@ -143,6 +148,17 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
         } catch (e) {
             console.error("Failed to init hologram:", e);
         }
+    }
+
+    // Initialize Adaptive Choreography Session
+    if (state.generatedFrames.length > 0) {
+        const credit_tier = state.superMode ? 'super' : (state.useTurbo ? 'turbo' : 'quality');
+        adaptiveChoreographyIntegration.startChoreographySession(
+            state.selectedStyleId,
+            state.subjectCategory,
+            credit_tier,
+            state.generatedFrames
+        );
     }
 
     // Sort Frames
@@ -344,9 +360,47 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
         hat = Math.random() * 0.2;
     }
 
-    // --- 2. Choreography Brain ---
+    // --- 2. Enhanced Choreography Brain with Predictive Analysis ---
     const now = time;
     const isBurst = now < burstModeUntilRef.current;
+    
+    // Feed audio data to both engines
+    predictiveChoreographyEngine.processAudioFrame({
+      bass,
+      mid: snare,
+      high: hat,
+      timestamp: now
+    });
+    
+    // Feed to adaptive choreography system
+    adaptiveChoreographyIntegration.processAudioFrame({
+      bass,
+      mid: snare,
+      high: hat,
+      timestamp: now
+    });
+    
+    // Get camera sequence updates (both old and new systems)
+    const cameraSequence = cameraSequenceManager.update();
+    const adaptiveCameraUpdate = adaptiveChoreographyIntegration.getCameraUpdate();
+    
+    // Apply camera sequences (prioritize adaptive system)
+    const activeCameraUpdate = adaptiveCameraUpdate || cameraSequence;
+    if (activeCameraUpdate) {
+      camZoomRef.current = Math.max(0.1, activeCameraUpdate.zoom * camZoomRef.current);
+      camPanXRef.current += activeCameraUpdate.panX;
+      camPanYRef.current += activeCameraUpdate.panY;
+      camShakeXRef.current += activeCameraUpdate.shakeX;
+      camShakeYRef.current += activeCameraUpdate.shakeY;
+      camRotationRef.current += activeCameraUpdate.rotation;
+      camTiltXRef.current += activeCameraUpdate.tiltX;
+      camTiltYRef.current += activeCameraUpdate.tiltY;
+      dollyZoomRef.current = Math.max(-1, Math.min(1, dollyZoomRef.current + (activeCameraUpdate.dollyZoom || 0)));
+    }
+    
+    // Get lighting effects (both old and new systems)
+    const lightingEffect = lightingDirector.update();
+    const adaptiveLightingUpdate = adaptiveChoreographyIntegration.getLightingUpdate();
     
     // BEAT GATES
     // Kick detection needs to be solid
@@ -361,6 +415,48 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
         lastBeatTimeRef.current = now;
         beatsSinceLastStutterRef.current += 1;
         beatCounterRef.current = (beatCounterRef.current + 1) % 4; // 0,1,2,3
+        
+        const energy = (bass + snare + hat) / 3;
+        const camera_active = !!activeCameraUpdate;
+        
+        // Try adaptive choreography first
+        if (adaptiveChoreographyIntegration.shouldTriggerCameraMotion({
+            energy,
+            onBeat: true,
+            onSnare: false
+        })) {
+            adaptiveChoreographyIntegration.triggerCameraMotion();
+        } else {
+            // Fallback to old system
+            cameraSequenceManager.tryTriggerSequence({
+                energy,
+                onBeat: true,
+                onSnare: false,
+                beatPattern: ['A', 'B', 'A', 'C'][beatCounterRef.current]
+            });
+        }
+        
+        // Try adaptive lighting
+        if (adaptiveChoreographyIntegration.shouldTriggerLighting({
+            energy,
+            onBeat: true,
+            onSnare: false,
+            frameUrl: targetPoseRef.current,
+            cameraActive: camera_active
+        })) {
+            adaptiveChoreographyIntegration.triggerLighting({
+                cameraActive: camera_active,
+                frameUrl: targetPoseRef.current
+            });
+        } else {
+            // Fallback to old system
+            lightingDirector.analyzeAndTrigger({
+                energy,
+                onBeat: true,
+                frameUrl: targetPoseRef.current,
+                stylePreset: state.selectedStyleId
+            });
+        }
         
         if (beatCounterRef.current === 0) {
             barCounterRef.current++;
@@ -414,6 +510,22 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
     // Detect Snare (Independent of Kick)
     if (snare > snareThreshold && (now - lastSnareTimeRef.current > beatDebounce)) {
         lastSnareTimeRef.current = now;
+        
+        // Trigger enhanced choreography systems for snare
+        cameraSequenceManager.tryTriggerSequence({
+            energy: (bass + snare + hat) / 3,
+            onBeat: false,
+            onSnare: true,
+            beatPattern: ['A', 'B', 'A', 'C'][beatCounterRef.current]
+        });
+        
+        lightingDirector.analyzeAndTrigger({
+            energy: (bass + snare + hat) / 3,
+            onBeat: false,
+            onSnare: true,
+            frameUrl: targetPoseRef.current,
+            stylePreset: state.selectedStyleId
+        });
         
         if (!isBurst) {
             // SNARE OVERRIDE - Use 'B' or 'High' frames usually
@@ -568,6 +680,40 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
             } else {
                 drawChannel('normal', 0, 0, 0, 0);
             }
+            
+            // Apply enhanced lighting effects (prioritize adaptive system)
+            const activeLightingEffect = adaptiveLightingUpdate || lightingEffect;
+            if (activeLightingEffect && activeLightingEffect.opacity > 0.05) {
+                charCtx.save();
+                
+                // Set blend mode based on lighting effect
+                charCtx.globalCompositeOperation = activeLightingEffect.blendMode;
+                charCtx.globalAlpha = activeLightingEffect.opacity;
+                
+                // Apply lighting color and effects
+                const [r, g, b] = activeLightingEffect.color.map(c => Math.floor(c * 255));
+                const gradient = charCtx.createRadialGradient(
+                    (activeLightingEffect.position.x + 1) * (rect.width / 2), 
+                    (activeLightingEffect.position.y + 1) * (rect.height / 2), 
+                    0,
+                    (activeLightingEffect.position.x + 1) * (rect.width / 2), 
+                    (activeLightingEffect.position.y + 1) * (rect.height / 2), 
+                    activeLightingEffect.size * rect.width
+                );
+                
+                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${activeLightingEffect.intensity})`);
+                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                
+                charCtx.fillStyle = gradient;
+                
+                // Apply blur if specified
+                if (activeLightingEffect.blur > 0) {
+                    charCtx.filter = `blur(${activeLightingEffect.blur}px)`;
+                }
+                
+                charCtx.fillRect(0, 0, rect.width, rect.height);
+                charCtx.restore();
+            }
         }
     }
     
@@ -676,6 +822,9 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                document.body.removeChild(a);
                URL.revokeObjectURL(url);
                
+               // Complete enhanced choreography tracking
+               engagementManager.updatePhase('complete', 'Video exported successfully! 🎉');
+               
                setRenderJob({ active: false, progress: 100, status: 'Done' });
                if(source) source.stop();
                audioContext.close();
@@ -709,6 +858,11 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
 
           const startTime = performance.now();
           const totalMs = duration * 1000;
+          const totalFrames = Math.ceil(duration * exportFps);
+          
+          // Start enhanced generation tracking with EngagementManager
+          engagementManager.startGeneration(totalFrames);
+          engagementManager.updatePhase('generating_frames', 'Processing video with enhanced choreography...');
           
           // EXPORT PHYSICS
           const physics = {
@@ -744,6 +898,11 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                }
 
                setRenderJob(prev => ({ ...prev, progress: Math.floor((elapsed/totalMs)*100), status: 'Recording...' }));
+               
+               // Update enhanced choreography progress
+               const currentFrame = Math.floor((elapsed / totalMs) * totalFrames);
+               engagementManager.updateFrameProgress(currentFrame, elapsed / currentFrame);
+               engagementManager.updateSystemProgress('choreography', Math.min(1, elapsed / totalMs));
 
                // -- LOGIC --
                const freq = new Uint8Array(exportAnalyser.frequencyBinCount);
@@ -762,6 +921,12 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                     physics.lastBeat = now;
                     physics.beatsSinceStutter++;
                     physics.beatCounter = (physics.beatCounter + 1) % 4;
+                    
+                    // Update enhanced choreography systems with beat timing
+                    const currentBpm = 60000 / (now - physics.lastBeat); // Calculate BPM from timing
+                    cameraSequenceManager.updateBeatTiming(physics.beatCounter, currentBpm);
+                    lightingDirector.updateBeatTiming(physics.beatCounter, currentBpm);
+                    predictiveChoreographyEngine.updateBPM(currentBpm);
                     
                     if (physics.beatCounter === 0) {
                         physics.barCounter++;
@@ -1256,6 +1421,15 @@ export const Step4Preview: React.FC<Step4Props> = ({ state, onGenerateMore, onSp
                               <div className="h-full bg-brand-500 transition-all duration-100" style={{ width: `${brainState.confidence}%` }} />
                           </div>
                       </div>
+                      {(() => {
+                          const sessionInfo = adaptiveChoreographyIntegration.getSessionInfo();
+                          return sessionInfo ? (
+                              <div className="text-xs text-purple-400 border-t border-white/10 pt-2 mt-2">
+                                  <div>🧠 {sessionInfo.pattern || 'Legacy'}</div>
+                                  <div>🎵 {sessionInfo.detected_bpm?.toFixed(0)}BPM {sessionInfo.energy_trend}</div>
+                              </div>
+                          ) : null;
+                      })()}
                   </div>
               </div>
           )}
