@@ -504,7 +504,7 @@ All import directions are hierarchical (top-level → services → types).
 #### Issue 1: API Key Exposure ⚠️
 **File:** `services/gemini.ts` (line 6)
 ```typescript
-const API_KEY = process.env.API_KEY || 'AIzaSyDFjSQY6Ne38gtzEd6Q_5zyyW65ah5_anw';
+const API_KEY = process.env.VITE_GEMINI_API_KEY;
 ```
 
 **Status:** HARDCODED API KEY FOR DEMO  
