@@ -4,7 +4,7 @@ import { GeneratedFrame, PoseType, EnergyLevel, SubjectCategory, FrameType } fro
 
 // API KEY from environment variables only - SECURE
 // ALL hardcoded keys have been removed for security
-const API_KEY = process.env.VITE_GEMINI_API_KEY;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // --- UTILITIES ---
 
