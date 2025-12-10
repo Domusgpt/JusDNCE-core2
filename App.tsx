@@ -9,7 +9,7 @@ import { Step4Preview } from './components/Step4Preview';
 import { generateDanceFrames, fileToGenericBase64 } from './services/gemini';
 import { AuthModal, PaymentModal } from './components/Modals';
 import { GlobalBackground } from './components/GlobalBackground';
-import { AnimationStudio } from './components/AnimationStudio';
+import { EnhancedAnimationStudio } from './components/EnhancedAnimationStudio';
 
 const triggerImpulse = (type: 'click' | 'hover' | 'type', intensity: number = 1.0) => {
     const event = new CustomEvent('ui-interaction', { detail: { type, intensity } });
@@ -38,15 +38,53 @@ const App: React.FC = () => {
 
   const handleAudioUpload = async (file: File) => {
     if (!file) {
-        setAppState(prev => ({ ...prev, audioFile: null, audioPreviewUrl: null }));
+        setAppState(prev => ({ ...prev, audioFile: null, audioPreviewUrl: null, audioDuration: 0, waveformData: undefined }));
         return;
     }
+    
     const previewUrl = URL.createObjectURL(file);
-    setAppState(prev => ({
-      ...prev,
-      audioFile: file,
-      audioPreviewUrl: previewUrl
-    }));
+    
+    // Analyze audio for duration and waveform
+    try {
+      const audioContext = new AudioContext();
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      const duration = audioBuffer.duration;
+      const channelData = audioBuffer.getChannelData(0); // Use first channel
+      
+      // Create downsampled waveform data (1 sample per pixel for visualization)
+      const samples = 1000; // Target number of samples for waveform visualization
+      const blockSize = Math.floor(channelData.length / samples);
+      const waveformData = new Float32Array(samples);
+      
+      for (let i = 0; i < samples; i++) {
+        let sum = 0;
+        for (let j = 0; j < blockSize; j++) {
+          sum += Math.abs(channelData[i * blockSize + j] || 0);
+        }
+        waveformData[i] = sum / blockSize;
+      }
+      
+      setAppState(prev => ({
+        ...prev,
+        audioFile: file,
+        audioPreviewUrl: previewUrl,
+        audioDuration: duration,
+        waveformData
+      }));
+      
+    } catch (error) {
+      console.error('Audio analysis failed:', error);
+      // Fallback without waveform data
+      setAppState(prev => ({
+        ...prev,
+        audioFile: file,
+        audioPreviewUrl: previewUrl,
+        audioDuration: 0,
+        waveformData: undefined
+      }));
+    }
   };
 
   const updateConfig = (key: string, value: any) => {
@@ -58,7 +96,8 @@ const App: React.FC = () => {
           uid: '123456789',
           name: 'Beta User',
           email: 'user@example.com',
-          photoURL: 'https://ui-avatars.com/api/?name=Beta+User&background=random'
+          photoURL: 'https://ui-avatars.com/api/?name=Beta+User&background=random',
+          isPaidUser: false // Default to free tier
       };
       setAppState(prev => ({ 
           ...prev, 
@@ -91,23 +130,32 @@ const App: React.FC = () => {
       handleGenerate(isMock);
   };
   
-  const handleInstantGenerate = () => {
+  const handleInstantGenerate = async () => {
       triggerImpulse('click', 1.5);
-      // Ensure defaults for quick start
+      
+      // Atomic state update with immediate generation
       setAppState(prev => ({ 
           ...prev, 
           useTurbo: true, 
           motionPreset: 'auto',
-          step: AppStep.DIRECTOR // Briefly switch state logic
+          step: AppStep.DIRECTOR
       }));
-      // Need a small timeout to let state update or just call directly with overrides
-      setTimeout(() => handleGenerate(), 100);
+      
+      // Call generation directly without timeout to prevent race conditions
+      await handleGenerate();
   };
 
   const handleGenerate = async (isMock: boolean = false) => {
     if (!appState.imagePreviewUrl) return;
     
-    setAppState(prev => ({ ...prev, isGenerating: true, step: AppStep.PREVIEW }));
+    // Use functional state updates to prevent race conditions
+    setAppState(prev => ({ 
+      ...prev, 
+      isGenerating: true, 
+      step: AppStep.PREVIEW,
+      generatedFrames: [], // Clear previous frames
+      error: null // Clear any previous errors
+    }));
 
     const style = STYLE_PRESETS.find(s => s.id === appState.selectedStyleId);
     const imageBase64 = appState.imagePreviewUrl;
@@ -138,15 +186,30 @@ const App: React.FC = () => {
             isMock
         );
 
+        // Atomic state update to prevent partial updates
         setAppState(prev => ({
             ...prev,
             generatedFrames: frames,
-            subjectCategory: category, // Store detection result
-            isGenerating: false
+            subjectCategory: category,
+            isGenerating: false,
+            error: null
         }));
+        
+        // Trigger success impulse
+        triggerImpulse('click', 2.0);
+        
     } catch (e: any) {
         console.error("Generation Failed:", e);
         const msg = e.message || "Unknown error";
+        
+        // Update state with error information
+        setAppState(prev => ({
+            ...prev,
+            isGenerating: false,
+            error: msg,
+            generatedFrames: [] // Clear frames on error
+        }));
+        
         if (msg.includes('403') || msg.includes('PERMISSION_DENIED')) {
             alert("API Permission Denied (403). Please ensure your API Key has access to 'gemini-2.5-flash-image'.");
         } else {
@@ -246,19 +309,35 @@ const App: React.FC = () => {
             onSuccess={handlePaymentSuccess}
         />
 
-        {/* Animation Studio */}
+        {/* Enhanced Animation Studio */}
         {showAnimationStudio && (
-            <AnimationStudio
+            <EnhancedAnimationStudio
                 sourceImage={appState.imagePreviewUrl || ''}
                 audioFile={appState.audioFile}
+                generatedFrames={appState.generatedFrames.map(f => f.url)}
+                isPaidUser={appState.user?.isPaidUser || false}
+                audioDuration={appState.audioDuration}
+                waveformData={appState.waveformData}
                 onExport={(blob) => {
                     // Download the video
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `animation_${Date.now()}.mp4`;
+                    a.download = `dance_export_${Date.now()}.mp4`;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     URL.revokeObjectURL(url);
+                    
+                    // Record export usage for paid users
+                    if (appState.user?.isPaidUser) {
+                        // This would integrate with payment service
+                        console.log('Recording export usage for user:', appState.user.uid);
+                    }
+                }}
+                onUpgrade={() => {
+                    setAppState(prev => ({ ...prev, showPaymentModal: true }));
+                    setShowAnimationStudio(false);
                 }}
                 onClose={() => setShowAnimationStudio(false)}
             />

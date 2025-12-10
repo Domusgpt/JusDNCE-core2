@@ -72,6 +72,12 @@ export interface AuthUser {
   name: string;
   email: string;
   photoURL: string;
+  isPaidUser: boolean; // Payment status
+  subscription?: {
+    plan: 'basic' | 'pro' | 'studio';
+    exportsRemaining: number;
+    renewsAt: number;
+  };
 }
 
 // NEW: Stutter Styles
@@ -88,6 +94,8 @@ export interface AppState {
   imagePreviewUrl: string | null;
   audioFile: File | null;
   audioPreviewUrl: string | null;
+  audioDuration: number; // Audio length in seconds
+  waveformData?: Float32Array; // Audio waveform for visualization
   selectedStyleId: string;
   
   // Advanced / Morphing State
@@ -112,6 +120,14 @@ export interface AppState {
   isGenerating: boolean;
   credits: number;
   
+  // Export state
+  isExporting: boolean;
+  exportProgress: number;
+  lastExportedVideo?: Blob;
+  
+  // Error handling
+  error: string | null;
+  
   savedDirectorPresets: DirectorPreset[]; // NEW: User saved configurations
 }
 
@@ -126,6 +142,8 @@ export const DEFAULT_STATE: AppState = {
   imagePreviewUrl: null,
   audioFile: null,
   audioPreviewUrl: null,
+  audioDuration: 0,
+  waveformData: undefined,
   selectedStyleId: 'neon-cyber',
   
   secondaryStyleId: '',
@@ -148,5 +166,14 @@ export const DEFAULT_STATE: AppState = {
   subjectCategory: 'CHARACTER',
   isGenerating: false,
   credits: 0, // Start with 0, require login to get free credit
+  
+  // Export defaults
+  isExporting: false,
+  exportProgress: 0,
+  lastExportedVideo: undefined,
+  
+  // Error state
+  error: null,
+  
   savedDirectorPresets: [],
 };
