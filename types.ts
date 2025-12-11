@@ -12,6 +12,11 @@ export type StyleCategory = 'Cinematic' | 'Anime/2D' | 'Digital/Glitch' | 'Artis
 export type SubjectCategory = 'CHARACTER' | 'TEXT' | 'SYMBOL';
 export type FrameType = 'body' | 'closeup'; // NEW: Distinguish full body from facial frames
 
+// Sprite sheet generation types (Fluid integration)
+export type SheetRole = 'base' | 'alt' | 'closeup';
+export type TransitionMode = 'CUT' | 'FLOW';
+export type BackgroundMode = 'white' | 'dark' | 'transparent';
+
 export interface StylePreset {
   id: string;
   name: string;
@@ -55,7 +60,8 @@ export interface GeneratedFrame {
   pose: PoseType;
   energy: EnergyLevel;
   type?: FrameType; // NEW
-  promptUsed?: string; 
+  role?: SheetRole; // Sprite sheet role (base, alt, closeup)
+  promptUsed?: string;
 }
 
 export interface SavedProject {
@@ -129,6 +135,10 @@ export interface AppState {
   error: string | null;
   
   savedDirectorPresets: DirectorPreset[]; // NEW: User saved configurations
+
+  // Fluid integration - background and effects
+  backgroundMode: BackgroundMode; // Sprite sheet background mode
+  enableStrobe: boolean; // Rhythmic strobe effect on beat
 }
 
 export const DEFAULT_STATE: AppState = {
@@ -176,4 +186,8 @@ export const DEFAULT_STATE: AppState = {
   error: null,
   
   savedDirectorPresets: [],
+
+  // Fluid integration defaults
+  backgroundMode: 'white',
+  enableStrobe: true,
 };
