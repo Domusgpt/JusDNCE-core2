@@ -328,7 +328,7 @@ const generateSingleSheet = async (
     while (attempt < 3) {
         try {
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash-preview-05-20',
+                model: 'gemini-2.5-flash-image',
                 contents: [
                     { role: 'user', parts: [
                         { text: systemPrompt },
